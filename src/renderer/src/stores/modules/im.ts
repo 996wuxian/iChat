@@ -145,7 +145,7 @@ export const useImStore = defineStore(
           console.log('发送的消息:', message)
         })
 
-        socket.value.on('receivePrivateMessage', (message: any) => {
+        socket.value.on('receivePrivateMessage', async (message: any) => {
           // 同时显示桌面通知
           window.api.sendNotification(
             `收到来自 ${message.sender.nickname || message.sender.username} 的消息`,
@@ -154,6 +154,33 @@ export const useImStore = defineStore(
             message.sender.username,
             message.sender.avatar // 传入好友头像作为图标
           )
+
+          // 检查发送消息的用户是否在聊天列表中
+          if (!userList.value[message.sender.username]) {
+            // 如果不在列表中，重新获取聊天列表
+            console.log(`用户 ${message.sender.username} 不在聊天列表中，重新获取列表`)
+            await getChatList()
+
+            // 如果获取列表后仍然不存在，可能是API尚未更新，创建一个临时条目
+            if (!userList.value[message.sender.username]) {
+              userList.value[message.sender.username] = {
+                list: {
+                  id: message.sender.id,
+                  username: message.sender.username,
+                  nickname: message.sender.nickname,
+                  avatar: message.sender.avatar,
+                  lastMsg: '',
+                  lastMsgTime: new Date().toLocaleString(),
+                  unReadCount: 0,
+                  online: '1',
+                  is_top: '0',
+                  is_disturb: '0'
+                },
+                msgList: []
+              }
+            }
+          }
+
           userList.value[message.sender.username].msgList.push(message)
           userList.value[message.sender.username].list.lastMsg = message.content
           userList.value[message.sender.username].list.lastMsgTime = new Date(

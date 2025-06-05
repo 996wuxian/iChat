@@ -1,13 +1,7 @@
 <script setup lang="ts">
 import Menu from './components/menu.vue'
-import { onMounted } from 'vue'
 import List from './components/list.vue'
 import Content from './components/content.vue'
-import { useImStore } from '@renderer/stores/modules/im'
-const imStore = useImStore()
-onMounted(async () => {
-  await imStore.getChatList()
-})
 </script>
 
 <template>

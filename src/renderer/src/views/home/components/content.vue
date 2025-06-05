@@ -852,7 +852,8 @@ const handleClickOutside = (event: MouseEvent) => {
 
 let recordTimer: NodeJS.Timeout | null = null
 
-onMounted(() => {
+onMounted(async () => {
+  await imStore.getChatList()
   const userId = route.query.userId
   if (userId && userList.value) {
     // 找到对应的用户
