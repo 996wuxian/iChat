@@ -1,0 +1,76 @@
+@use 'sass:color';
+
+// 自定义滚动条混合器
+@mixin custom-scrollbar(
+  $track-color: transparent,
+  $thumb-color: rgba(144, 147, 153, 0.3),
+  $thumb-hover-color: rgba(144, 147, 153, 0.5),
+  $width: 8px,
+  $height: 8px,
+  $border-radius: 4px
+) {
+  // 针对 Firefox
+  scrollbar-width: thin;
+  scrollbar-color: $thumb-color $track-color;
+
+  // 针对 Webkit 浏览器 (Chrome, Safari, Edge等)
+  &::-webkit-scrollbar {
+    width: $width;
+    height: $height;
+  }
+
+  &::-webkit-scrollbar-track {
+    background-color: $track-color;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background-color: $thumb-color;
+    border-radius: $border-radius;
+    // 移除所有额外的样式，只保留基本的圆角和背景色
+
+    &:hover {
+      background-color: $thumb-hover-color;
+    }
+  }
+
+  &::-webkit-scrollbar-corner {
+    background-color: transparent;
+  }
+}
+
+// 暗色主题滚动条
+@mixin dark-scrollbar {
+  @include custom-scrollbar(rgba(0, 0, 0, 0.1), rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.3));
+}
+
+// 亮色主题滚动条
+@mixin light-scrollbar {
+  @include custom-scrollbar(rgba(255, 255, 255, 0.1), rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.3));
+}
+
+// 隐藏滚动条但保留滚动功能
+@mixin hidden-scrollbar {
+  -ms-overflow-style: none; // IE and Edge
+  scrollbar-width: none; // Firefox
+
+  &::-webkit-scrollbar {
+    display: none; // Chrome, Safari, Opera
+  }
+}
+
+// 应用默认滚动条样式的辅助类
+.scrollbar {
+  @include custom-scrollbar();
+}
+
+.scrollbar-dark {
+  @include dark-scrollbar();
+}
+
+.scrollbar-light {
+  @include light-scrollbar();
+}
+
+.scrollbar-hidden {
+  @include hidden-scrollbar();
+}

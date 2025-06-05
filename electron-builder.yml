@@ -1,0 +1,72 @@
+appId: com.electron.app
+productName: temp-v3-ts-vite-electron
+directories:
+  buildResources: build
+  output: release/${version}
+files:
+  - '!**/.vscode/*'
+  - '!src/*'
+  - '!electron.vite.config.{js,ts,mjs,cjs}'
+  - '!{.eslintcache,eslint.config.mjs,.prettierignore,.prettierrc.yaml,dev-app-update.yml,CHANGELOG.md,README.md}'
+  - '!{.env,.env.*,.npmrc,pnpm-lock.yaml}'
+  - '!{tsconfig.json,tsconfig.node.json,tsconfig.web.json}'
+  - '!**/*.map'
+  - '!**/*.ts'
+  - '!**/README.md'
+  - '!**/test/*'
+  - '!**/tests/*'
+  - '!**/*.spec.*'
+  - '!**/*.test.*'
+  - '!**/*.d.ts'
+  - '!**/docs/**'
+  - '!**/.git*'
+  - '!**/node_modules/*/{test,__tests__,tests,powered-test,example,examples,demo}/**'
+  - '!**/node_modules/*/{.bin,.idea,.vscode,docs,doc,benchmark}/**'
+  - '!**/node_modules/*/LICENSE*'
+  - '!**/node_modules/*/license*'
+  - '!**/node_modules/*/CHANGELOG*'
+  - '!**/node_modules/*/History*'
+extraResources:
+  - resources/**
+win:
+  executableName: temp-v3-ts-vite-electron
+nsis:
+  artifactName: ${name}-${version}-setup.${ext}
+  shortcutName: ${productName}
+  uninstallDisplayName: ${productName}
+  createDesktopShortcut: always
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  deleteAppDataOnUninstall: true
+  installerIcon: build/icon.ico
+  uninstallerIcon: build/icon.ico
+  installerHeaderIcon: build/icon.ico
+  createStartMenuShortcut: true
+  include: build/installer.nsh
+mac:
+  entitlementsInherit: build/entitlements.mac.plist
+  extendInfo:
+    - NSCameraUsageDescription: Application requests access to the device's camera.
+    - NSMicrophoneUsageDescription: Application requests access to the device's microphone.
+    - NSDocumentsFolderUsageDescription: Application requests access to the user's Documents folder.
+    - NSDownloadsFolderUsageDescription: Application requests access to the user's Downloads folder.
+  notarize: false
+dmg:
+  artifactName: ${name}-${version}.${ext}
+linux:
+  target:
+    - AppImage
+    - snap
+    - deb
+  maintainer: electronjs.org
+  category: Utility
+appImage:
+  artifactName: ${name}-${version}.${ext}
+npmRebuild: false
+publish:
+  provider: generic
+  url: https://example.com/auto-updates
+electronDownload:
+  mirror: https://npmmirror.com/mirrors/electron/
+asar: { smartUnpack: true }
