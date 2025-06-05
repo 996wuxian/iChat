@@ -1,49 +1,61 @@
-appId: com.electron.app
-productName: temp-v3-ts-vite-electron
+appId: iChat.app
+productName: iChat
+
 directories:
-  buildResources: build
   output: release/${version}
+  buildResources: build
+
 files:
+  - 'out/**/*'
   - '!**/.vscode/*'
   - '!src/*'
   - '!electron.vite.config.{js,ts,mjs,cjs}'
-  - '!{.eslintcache,eslint.config.mjs,.prettierignore,.prettierrc.yaml,dev-app-update.yml,CHANGELOG.md,README.md}'
+  - '!{.eslintignore,.eslintrc.cjs,.prettierignore,.prettierrc.yaml,dev-app-update.yml,CHANGELOG.md,README.md}'
   - '!{.env,.env.*,.npmrc,pnpm-lock.yaml}'
   - '!{tsconfig.json,tsconfig.node.json,tsconfig.web.json}'
-  - '!**/*.map'
-  - '!**/*.ts'
-  - '!**/README.md'
-  - '!**/test/*'
-  - '!**/tests/*'
-  - '!**/*.spec.*'
-  - '!**/*.test.*'
-  - '!**/*.d.ts'
-  - '!**/docs/**'
-  - '!**/.git*'
-  - '!**/node_modules/*/{test,__tests__,tests,powered-test,example,examples,demo}/**'
-  - '!**/node_modules/*/{.bin,.idea,.vscode,docs,doc,benchmark}/**'
-  - '!**/node_modules/*/LICENSE*'
-  - '!**/node_modules/*/license*'
-  - '!**/node_modules/*/CHANGELOG*'
-  - '!**/node_modules/*/History*'
+  - '!**/*.{map,md,txt,log}'
+  - '!**/node_modules/*/{test,__tests__,tests,powered-test,example,examples,docs}'
+  - '!**/node_modules/.bin'
+  - '!**/*.{iml,o,hprof,orig,pyc,pyo,rbc,swp,csproj,sln,xproj}'
+
 extraResources:
+  - from: 'resources'
+    to: '.'
+    filter:
+      - '**/*'
+
+asarUnpack:
   - resources/**
+
+compression: maximum
+asar: true
+removePackageScripts: true
+buildDependenciesFromSource: true
+
 win:
-  executableName: temp-v3-ts-vite-electron
+  executableName: todo
+  target:
+    - target: nsis
+      arch:
+        - x64
+  artifactName: ${productName}_${version}.${ext}
+  icon: resources/icon.ico
+
 nsis:
-  artifactName: ${name}-${version}-setup.${ext}
-  shortcutName: ${productName}
-  uninstallDisplayName: ${productName}
-  createDesktopShortcut: always
   oneClick: false
   perMachine: false
   allowToChangeInstallationDirectory: true
   deleteAppDataOnUninstall: true
-  installerIcon: build/icon.ico
-  uninstallerIcon: build/icon.ico
-  installerHeaderIcon: build/icon.ico
-  createStartMenuShortcut: true
-  include: build/installer.nsh
+  differentialPackage: true
+  menuCategory: false
+  runAfterFinish: true
+  packElevateHelper: true
+  shortcutName: ${productName}
+  uninstallDisplayName: ${productName}
+  createDesktopShortcut: always
+  installerIcon: 'build/icon.ico'
+  uninstallerIcon: 'build/icon.ico'
+
 mac:
   entitlementsInherit: build/entitlements.mac.plist
   extendInfo:
@@ -52,8 +64,10 @@ mac:
     - NSDocumentsFolderUsageDescription: Application requests access to the user's Documents folder.
     - NSDownloadsFolderUsageDescription: Application requests access to the user's Downloads folder.
   notarize: false
+
 dmg:
   artifactName: ${name}-${version}.${ext}
+
 linux:
   target:
     - AppImage
@@ -61,12 +75,8 @@ linux:
     - deb
   maintainer: electronjs.org
   category: Utility
+
 appImage:
   artifactName: ${name}-${version}.${ext}
+
 npmRebuild: false
-publish:
-  provider: generic
-  url: https://example.com/auto-updates
-electronDownload:
-  mirror: https://npmmirror.com/mirrors/electron/
-asar: { smartUnpack: true }
