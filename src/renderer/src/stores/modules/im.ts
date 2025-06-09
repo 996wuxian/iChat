@@ -6,7 +6,6 @@ import { $msg } from '@renderer/config/interaction.config'
 import piniaPersistConfig from '@renderer/utils/persist'
 import { GetChatList } from '@renderer/service/api/user'
 import { findMessagesBetweenUsers } from '@renderer/service/api/message'
-import defaultAvatar from '@renderer/assets/imgs/default-avatar.jpg'
 
 interface UserList {
   [username: string]: {
@@ -68,7 +67,7 @@ export const useImStore = defineStore(
           return
         }
 
-        socket.value = io('http://localhost:9528', {
+        socket.value = io('http://192.168.2.94:9528', {
           transports: ['websocket'],
           autoConnect: true
         })

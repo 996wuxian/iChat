@@ -62,9 +62,29 @@
     <!-- 拖拽条 -->
     <div class="resize-handle" @mousedown="handleMouseDown"></div>
 
+    <!-- 切换按钮 -->
+    <div class="flex justify-between p-10px">
+      <div
+        class="tab-item"
+        :class="{ active: listType === 'friends' }"
+        @click="handleTabChange('friends')"
+      >
+        <i i-solar-user-bold-duotone class="text-18px"></i>
+        <span>好友</span>
+      </div>
+      <div
+        class="tab-item"
+        :class="{ active: listType === 'groups' }"
+        @click="handleTabChange('groups')"
+      >
+        <i i-solar-users-group-rounded-bold-duotone class="text-18px"></i>
+        <span>群聊</span>
+      </div>
+    </div>
+
     <!-- 好友列表 -->
     <div
-      v-if="friendList.length > 0"
+      v-if="listType === 'friends' && friendList.length > 0"
       class="flex flex-col b-t-1px b-#EEEEEE b-t-solid p-10px gap-10px"
     >
       <div class="text-gray-500 text-12px flex items-center gap-10px justify-center mb-10px">
@@ -102,9 +122,45 @@
         </div>
       </div>
     </div>
+    <!-- 群聊列表 -->
+    <div
+      v-else-if="listType === 'groups' && groupList.length > 0"
+      class="flex flex-col b-t-1px b-#EEEEEE b-t-solid p-10px gap-10px"
+    >
+      <div class="text-gray-500 text-12px flex items-center gap-10px justify-center mb-10px">
+        <span class="w-50px h-1px bg-#eee"></span>
+        共{{ groupList.length }}个群聊
+        <span class="w-50px h-1px bg-#eee"></span>
+      </div>
+      <div
+        v-for="group in groupList"
+        :key="group.id"
+        class="friend-card rounded-lg p-2 cursor-pointer"
+        :class="{ 'bg-#F5F5F5 c-#fff': selectGroup?.id === group.id }"
+        @click.stop="changeContent('groupDetail', group)"
+      >
+        <div class="flex items-start gap-3">
+          <img
+            :src="group.avatar || defaultAvatar"
+            :alt="group.name"
+            class="w-10 h-10 rounded-full object-cover"
+          />
+          <div class="flex-1">
+            <div class="flex items-center justify-between relative">
+              <h3 class="font-medium text-gray-900">{{ group.name }}</h3>
+            </div>
+            <p class="text-12px text-gray-500">
+              {{ group.description || '暂无群描述' }}
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 空状态提示 -->
     <div v-else class="flex flex-col items-center justify-center h-full text-gray-500">
       <i i-solar-users-group-rounded-bold-duotone class="text-40px mb-4"></i>
-      <p>暂无好友</p>
+      <p>{{ listType === 'friends' ? '暂无好友' : '暂无群聊' }}</p>
     </div>
   </div>
 </template>
@@ -122,12 +178,29 @@ const {
   friendList,
   sidebarWidth,
   handleMouseDown,
-  remark
+  remark,
+  listType,
+  selectGroup,
+  toggleListType,
+  groupList,
+  getFriendList,
+  getGroupList,
+  getGroupDetail
 } = useUsersStore()
 
 const emit = defineEmits(['select'])
 
-const changeContent = (type: 'notice' | 'group' | 'black' | 'friend', item?: any) => {
+// 处理标签切换
+const handleTabChange = (type: 'friends' | 'groups') => {
+  if (type !== listType.value) {
+    toggleListType()
+  }
+}
+
+const changeContent = (
+  type: 'notice' | 'group' | 'black' | 'friend' | 'groupDetail',
+  item?: any
+) => {
   switch (type) {
     case 'notice':
       emit('select', 'notice')
@@ -144,11 +217,18 @@ const changeContent = (type: 'notice' | 'group' | 'black' | 'friend', item?: any
       remark.value = item.remark
       emit('select', 'friend')
       break
+    case 'groupDetail':
+      selectGroup.value = item
+      selectFriend.value = null
+      getGroupDetail(item.id) // 获取群聊详情
+      emit('select', 'groupDetail')
+      break
   }
 }
 
 onUnmounted(() => {
   selectFriend.value = null
+  selectGroup.value = null
 })
 </script>
 

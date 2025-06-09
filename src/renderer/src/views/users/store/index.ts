@@ -1,11 +1,13 @@
 import { ref, computed } from 'vue'
-import { GetFriendList } from '@renderer/service/api/user'
+import { GetFriendList, GetUserGroups, GetGroupDetail } from '@renderer/service/api/user'
 import { useDraggableWidth } from '@renderer/hooks/useDraggableWidth'
 import useUserStore from '@renderer/stores/modules/user'
 
 const userStore = useUserStore()
 
-const userInfo = userStore.userInfo
+const userInfo = computed(() => {
+  return userStore.userInfo
+})
 
 const {
   width: sidebarWidth,
@@ -62,6 +64,29 @@ interface Notice {
   addBy: number
 }
 
+// 群聊接口定义
+interface GroupMember {
+  id: number
+  groupId: number
+  userId: number
+  role: string // 'admin' | 'member'
+  createdAt: string
+  updatedAt: string
+  user: Friend
+}
+
+interface Group {
+  id: number
+  name: string
+  avatar: string | null
+  description: string | null
+  creatorId: number
+  is_dismiss: string
+  createdAt: string
+  updatedAt: string
+  members?: GroupMember[]
+}
+
 // 搜索关键词
 const searchKey = ref('')
 
@@ -73,6 +98,14 @@ const blackList = ref<any[]>([])
 
 // 通知列表
 const noticeList = ref<Notice[]>([])
+
+// 群聊列表
+const groupList = ref<Group[]>([])
+
+// 当前选中的群聊
+const selectGroup = ref<Group | null>(null)
+
+const listType = ref<'friends' | 'groups'>('friends')
 
 const remark = ref('')
 // 获取好友列表数据
@@ -89,6 +122,47 @@ const getFriendList = async () => {
   }
 }
 
+// 获取群聊列表数据
+const getGroupList = async () => {
+  try {
+    const res = await GetUserGroups()
+    if (res.code === 200) {
+      groupList.value = res.data || []
+    }
+  } catch (error) {
+    console.error('获取群聊列表失败:', error)
+  }
+}
+
+// 获取群聊详情
+const getGroupDetail = async (groupId: number) => {
+  try {
+    const res = await GetGroupDetail(groupId)
+    if (res.code === 200) {
+      // 更新选中的群聊信息
+      const index = groupList.value.findIndex((group) => group.id === groupId)
+      if (index !== -1) {
+        groupList.value[index] = res.data
+        selectGroup.value = res.data
+      }
+    }
+  } catch (error) {
+    console.error('获取群聊详情失败:', error)
+  }
+}
+
+// 切换列表类型
+const toggleListType = () => {
+  listType.value = listType.value === 'friends' ? 'groups' : 'friends'
+  // 如果切换到群聊列表，则获取群聊数据
+  if (listType.value === 'groups') {
+    getGroupList()
+  } else {
+    // 如果切换到好友列表，则获取好友数据
+    getFriendList()
+  }
+}
+
 // 计算好友请求数量（状态为0-待确认或4-已拒绝的通知数量）
 const friendRequestCount = computed(() => {
   // 确保 noticeList 有值时才进行过滤
@@ -96,7 +170,7 @@ const friendRequestCount = computed(() => {
     return 0
   }
   return noticeList.value.filter((notice) => {
-    return notice.status === '0' && notice.addBy !== userInfo.id
+    return notice.status === '0' && notice.addBy !== userInfo.value.id
   }).length
 })
 
@@ -127,8 +201,14 @@ export const useUsersStore = () => {
     blackList,
     noticeList,
     getFriendList,
+    groupList,
+    getGroupList,
+    getGroupDetail,
+    toggleListType,
     friendRequestCount,
     groupRequestCount,
+    selectGroup,
+    listType,
     handleFriendRequest,
     handleGroupRequest,
     userInfo

@@ -210,3 +210,38 @@ export function UnblacklistFriend(
     showMsg
   })
 }
+
+// 创建群聊
+export function CreateGroup(data: any, showLoading: boolean = true, showMsg: boolean = false) {
+  return request<any>({
+    method: 'post',
+    url: `${module}group/create`,
+    data,
+    showLoading,
+    showMsg
+  })
+}
+
+// 获取用户所在的群聊列表
+export function GetUserGroups(showLoading: boolean = false, showMsg: boolean = false) {
+  return request<any>({
+    method: 'get',
+    url: `${module}group/list`,
+    showLoading,
+    showMsg
+  })
+}
+
+// 获取群聊详情
+export function GetGroupDetail(
+  groupId: number,
+  showLoading: boolean = false,
+  showMsg: boolean = false
+) {
+  return request<any>({
+    method: 'get',
+    url: `${module}group/${groupId}`,
+    showLoading,
+    showMsg
+  })
+}

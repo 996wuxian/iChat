@@ -33,7 +33,7 @@ removePackageScripts: true
 buildDependenciesFromSource: true
 
 win:
-  executableName: todo
+  executableName: iChat
   target:
     - target: nsis
       arch:
