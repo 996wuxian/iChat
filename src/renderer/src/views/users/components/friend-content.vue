@@ -2,7 +2,7 @@
 import { computed, h } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUsersStore } from '../store'
-import defaultAvatar from '@renderer/assets/imgs/default-avatar.jpg'
+import defaultAvatar from '@renderer/assets/imgs/default-avatar.png'
 import { CreateChatList } from '@renderer/service/api/user'
 import { $msg } from '@renderer/config/interaction.config'
 
@@ -102,40 +102,62 @@ const handleSelect = (key: string | number) => {}
           </n-dropdown>
         </div>
 
+        <n-divider />
+
         <!-- 详细信息 -->
-        <div class="text-14px grid grid-cols-2 gap-x-20px gap-y-20px">
-          <div class="flex items-center gap-10px text-gray-600">
-            <i i-solar-user-id-bold-duotone class="text-17px text-primary"></i>
-            <span>账号：{{ selectedFriend.username }}</span>
+        <div class="text-14px flex flex-col gap-20px">
+          <div class="flex items-center text-gray-600 justify-between">
+            <div class="flex items-center gap-10px">
+              <i i-solar-user-id-bold-duotone class="text-17px text-primary"></i>
+              <span>账号</span>
+            </div>
+
+            {{ selectedFriend.username }}
           </div>
-          <div class="flex items-center gap-10px text-gray-600">
-            <i i-solar-user-bold-duotone class="text-17px text-primary"></i>
-            <span>性别：{{ Number(selectedFriend.gender) === 1 ? '男' : '女' }}</span>
+          <div class="flex items-center text-gray-600 justify-between">
+            <div class="flex items-center gap-10px">
+              <i i-solar-user-bold-duotone class="text-17px text-primary"></i>
+              <span>性别</span>
+            </div>
+
+            {{ Number(selectedFriend.gender) === 1 ? '男' : '女' }}
           </div>
-          <div class="flex items-center gap-10px text-gray-600">
-            <i i-solar-phone-bold-duotone class="text-17px text-primary"></i>
-            <span>手机：{{ selectedFriend.phone || '暂无联系方式' }}</span>
+          <div class="flex items-center text-gray-600 justify-between">
+            <div class="flex items-center gap-10px">
+              <i i-solar-phone-bold-duotone class="text-17px text-primary"></i>
+              <span>手机</span>
+            </div>
+
+            {{ selectedFriend.phone || '暂无联系方式' }}
           </div>
-          <div class="flex items-center gap-10px text-gray-600">
-            <i i-solar-letter-bold-duotone class="text-17px text-primary"></i>
-            <span>邮箱：{{ selectedFriend.email || '暂无邮箱' }}</span>
+          <div class="flex items-center text-gray-600 justify-between">
+            <div class="flex items-center gap-10px">
+              <i i-solar-letter-bold-duotone class="text-17px text-primary"></i>
+              <span>邮箱</span>
+            </div>
+
+            {{ selectedFriend.email || '暂无邮箱' }}
           </div>
-          <div class="flex items-center gap-10px text-gray-600">
-            <i i-solar-point-on-map-bold-duotone class="text-17px text-primary"></i>
-            <span>地址：{{ selectedFriend.address || '暂无地址' }}</span>
+          <div class="flex items-center text-gray-600 justify-between">
+            <div class="flex items-center gap-10px">
+              <i i-solar-point-on-map-bold-duotone class="text-17px text-primary"></i>
+              <span>地址</span>
+            </div>
+
+            {{ selectedFriend.address || '暂无地址' }}
           </div>
-          <div class="flex items-center gap-10px text-gray-600">
-            <i i-solar-pen-bold-duotone class="text-17px text-primary"></i>
-            <span>备注：{{ remark || '暂无备注' }}</span>
-          </div>
-          <div class="flex items-center gap-10px text-gray-600 col-span-2">
-            <i i-solar-calendar-bold-duotone class="text-17px text-primary"></i>
-            <span>注册时间：{{ new Date(selectedFriend.createdAt).toLocaleDateString() }}</span>
+          <div class="flex items-center text-gray-600 justify-between">
+            <div class="flex items-center gap-10px">
+              <i i-solar-pen-bold-duotone class="text-17px text-primary"></i>
+              <span>备注</span>
+            </div>
+
+            {{ remark || '暂无备注' }}
           </div>
         </div>
 
         <!-- 操作按钮 -->
-        <div class="mt-10px flex justify-center">
+        <div class="mt-40px flex justify-center">
           <div
             class="flex items-center gap-8px bg-[var(--theme-color)] text-white px-15px py-8px rounded-full hover:opacity-90 transition-opacity cursor-pointer"
             @click="handleChat"
@@ -151,8 +173,6 @@ const handleSelect = (key: string | number) => {}
 
 <style scoped lang="scss">
 .box {
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
   padding: 20px;
-  border-radius: 8px;
 }
 </style>

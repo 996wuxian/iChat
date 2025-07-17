@@ -36,12 +36,13 @@ interface ChatItem {
   online: string
   is_top: string
   is_disturb: string
+  chatType: string
 }
 
 const { width: sidebarWidth, handleMouseDown } = useDraggableWidth({
   minWidth: 200,
-  maxWidth: 300,
-  initialWidth: 300
+  maxWidth: 250,
+  initialWidth: 250
 })
 
 const currentMessage = ref<(Message & ChatItem) | null>(null)
@@ -101,7 +102,7 @@ const handleSelectChat = async (user: any) => {
   if (userInfo?.id) {
     imStore.msgCurrentPage = 1
     imStore.msgHistoryEnd = false
-    const resolve = await imStore.getMessageHistory(userInfo.id, user.id)
+    const resolve = await imStore.getMessageHistory(userInfo.id, user.id, user.chatType)
     if (!resolve) return
 
     // 等待一下确保消息列表已经准备好
@@ -195,6 +196,7 @@ const currentQuote = ref<{
 
 // 发送消息
 const handleSendMessage = async () => {
+  console.log(selectedChat.value, 'selectedChat.value')
   if (!messageContent.value.trim() || !selectedChat.value?.id) return
 
   if (currentQuote.value) {
@@ -204,7 +206,11 @@ const handleSendMessage = async () => {
     return
   }
 
-  const data = await imStore.sendMsg(selectedChat.value.id, messageContent.value)
+  const data = await imStore.sendMsg(
+    selectedChat.value.id,
+    messageContent.value,
+    selectedChat.value.chatType
+  )
 
   if (data) {
     messageContent.value = ''

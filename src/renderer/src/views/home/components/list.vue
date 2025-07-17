@@ -1,7 +1,7 @@
 <template>
   <div class="sidebar relative bg-#fff" :style="{ width: `${sidebarWidth}px` }">
     <!-- 搜索和添加区域 -->
-    <div class="search-bar">
+    <div class="search-bar no-drag">
       <div class="search-input">
         <i i-solar-magnifer-linear class="search-icon"></i>
         <input v-model="searchKey" type="text" placeholder="搜索" class="search-field" />
@@ -23,13 +23,21 @@
         @contextmenu.prevent="handleContextMenu($event, user, 'list')"
       >
         <div class="user-avatar">
-          <img :src="user.avatar || defaultAvatar" :alt="user.nickname" />
+          <div v-if="!avatarLoaded[user.id]" class="avatar-skeleton"></div>
+          <img
+            :src="user.avatar || defaultAvatar"
+            :alt="user.nickname"
+            :style="{ display: avatarLoaded[user.id] ? 'block' : 'none' }"
+            @load="avatarLoaded[user.id] = true"
+            @error="handleAvatarError($event)"
+          />
           <span
             v-if="user.unReadCount > 0"
             class="unReadCount-badge"
             :class="user?.is_disturb === '1' ? 'bg-gray-400' : 'bg-red-500'"
             >{{ user.unReadCount }}</span
           >
+
           <!-- 在线状态指示器 -->
           <span class="online-status" :class="{ 'is-online': user.online === '1' }"></span>
         </div>
@@ -51,17 +59,31 @@
             />
           </div>
 
-          <div v-if="user.lastMsg" class="last-message">
-            <template v-for="(part, index) in parseMessageContent(user.lastMsg)" :key="index">
-              <img
-                v-if="part.type === 'image'"
-                :src="part.src"
-                class="inline-block w-16px h-16px align-text-bottom"
-              />
-              <span v-else>{{ part.content }}</span>
-            </template>
+          <div v-if="user.lastMsg" class="last-message flex items-center">
+            <div class="message-content overflow-hidden">
+              <template v-for="(part, index) in parseMessageContent(user.lastMsg)" :key="index">
+                <img
+                  v-if="part.type === 'image'"
+                  :src="part.src"
+                  class="inline-block w-16px h-16px align-text-bottom"
+                />
+                <span v-else>{{ part.content }}</span>
+              </template>
+            </div>
+            <i
+              v-if="user.chatType === 'group'"
+              i-solar-users-group-rounded-bold-duotone
+              class="c-gray flex-shrink-0 ml-auto"
+            ></i>
           </div>
-          <div v-else class="c-gray text-12px">暂无消息</div>
+          <div v-else class="c-gray text-12px flex justify-between items-center">
+            暂无消息
+            <i
+              v-if="user.chatType === 'group'"
+              i-solar-users-group-rounded-bold-duotone
+              class="c-gray flex"
+            ></i>
+          </div>
         </div>
       </div>
     </div>
@@ -80,7 +102,7 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted, ref, computed } from 'vue'
 import Add from '@renderer/components/common/add.vue'
-import defaultAvatar from '@renderer/assets/imgs/default-avatar.jpg'
+import defaultAvatar from '@renderer/assets/imgs/default-avatar.png'
 import { formatTime } from '@renderer/utils/tools'
 import { useHomeStore } from '../store'
 
@@ -157,6 +179,16 @@ const parseMessageContent = (content: string) => {
 
   tempDiv.childNodes.forEach(processNode)
   return parts
+}
+
+// 添加头像加载状态
+const avatarLoaded = ref<Record<string, boolean>>({})
+
+// 头像错误处理
+const handleAvatarError = (event: Event, userId: string) => {
+  const target = event.target as HTMLImageElement
+  target.src = defaultAvatar
+  avatarLoaded.value[userId] = true
 }
 
 onMounted(() => {
@@ -310,11 +342,35 @@ onUnmounted(() => {
   width: 40px;
   height: 40px;
 
+  .avatar-container {
+    width: 100%;
+    height: 100%;
+    position: relative;
+  }
+
+  .avatar-skeleton {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+    background-size: 200% 100%;
+    animation: skeleton-loading 1.5s infinite;
+  }
+
   img {
     width: 100%;
     height: 100%;
     border-radius: 50%;
     object-fit: cover;
+  }
+}
+
+@keyframes skeleton-loading {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
   }
 }
 
@@ -374,9 +430,21 @@ onUnmounted(() => {
 .last-message {
   font-size: 12px;
   color: gray;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  display: flex;
+  align-items: center;
+  width: 100%;
+
+  .message-content {
+    flex: 1;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  i {
+    margin-left: 4px;
+  }
 }
 
 .custom-modal {

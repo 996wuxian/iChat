@@ -101,6 +101,8 @@ const handleLogin = async () => {
     true
   )
 
+  isLoggingIn.value = false
+
   if (code !== 200) return
   // 这里模拟登录成功
   await Session.set('token', data.token)

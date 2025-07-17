@@ -245,3 +245,14 @@ export function GetGroupDetail(
     showMsg
   })
 }
+
+// 修改群聊列表状态
+export function UpdateGroupList(data: any, showLoading: boolean = false, showMsg: boolean = false) {
+  return request<any>({
+    method: 'post',
+    url: `${module}group/updateGroupList/`,
+    data,
+    showLoading,
+    showMsg
+  })
+}

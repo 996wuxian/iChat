@@ -66,24 +66,33 @@ interface Notice {
 
 // 群聊接口定义
 interface GroupMember {
+  avatar: string
   id: number
-  groupId: number
+  joinTime: string
+  nickname: string
+  role: string
   userId: number
-  role: string // 'admin' | 'member'
+}
+interface Group {
+  avatar: string
   createdAt: string
+  creatorId: number
+  currentMemberCount: number
+  description: string
+  id: number
+  is_dismiss: string
+  is_disturb: string
+  is_top: string
+  lastMsg: string
+  lastMsgTime: string
+  maxMemberCount: number
+  name: string
+  role: string
   updatedAt: string
-  user: Friend
 }
 
-interface Group {
-  id: number
-  name: string
-  avatar: string | null
-  description: string | null
-  creatorId: number
-  is_dismiss: string
-  createdAt: string
-  updatedAt: string
+interface SelectGroup {
+  group: Group
   members?: GroupMember[]
 }
 
@@ -103,7 +112,7 @@ const noticeList = ref<Notice[]>([])
 const groupList = ref<Group[]>([])
 
 // 当前选中的群聊
-const selectGroup = ref<Group | null>(null)
+const selectGroup = ref<SelectGroup | null>(null)
 
 const listType = ref<'friends' | 'groups'>('friends')
 
@@ -142,7 +151,6 @@ const getGroupDetail = async (groupId: number) => {
       // 更新选中的群聊信息
       const index = groupList.value.findIndex((group) => group.id === groupId)
       if (index !== -1) {
-        groupList.value[index] = res.data
         selectGroup.value = res.data
       }
     }

@@ -85,8 +85,8 @@ export default defineConfig({
     server: {
       proxy: {
         '/api': {
-          // target: 'http://localhost:9528/api/',
-          target: 'http://192.168.2.94:9528/api/',
+          target: 'http://localhost:9528/api/',
+          // target: 'http://192.168.2.94:9528/api/',
           changeOrigin: true,
           rewrite: (path) => path.replace(/^\/api/, '')
         }

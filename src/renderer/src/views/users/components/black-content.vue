@@ -29,7 +29,7 @@
 <script setup lang="ts">
 import { useUsersStore } from '../store'
 import { NEmpty, NCard, NAvatar, useMessage } from 'naive-ui'
-import defaultAvatar from '@renderer/assets/imgs/default-avatar.jpg'
+import defaultAvatar from '@renderer/assets/imgs/default-avatar.png'
 
 const { blackList } = useUsersStore()
 const message = useMessage()

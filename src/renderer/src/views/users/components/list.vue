@@ -1,7 +1,7 @@
 <template>
   <div class="sidebar relative bg-#fff" :style="{ width: `${sidebarWidth}px` }">
     <!-- 搜索和添加区域 -->
-    <div class="search-bar">
+    <div class="search-bar no-drag">
       <div class="search-input">
         <i i-solar-magnifer-linear class="search-icon"></i>
         <input v-model="searchKey" type="text" placeholder="搜索" class="search-field" />
@@ -12,6 +12,7 @@
     <div class="flex flex-col p-10px">
       <div
         class="flex items-center justify-between p-3 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors"
+        :class="{ 'bg-gray-100': selectMenu === 'notice' }"
         @click.stop="changeContent('notice')"
       >
         <div class="flex items-center gap-2">
@@ -31,6 +32,7 @@
 
       <div
         class="flex items-center justify-between p-3 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors"
+        :class="{ 'bg-gray-100': selectMenu === 'group' }"
         @click.stop="changeContent('group')"
       >
         <div class="flex items-center gap-2">
@@ -50,6 +52,7 @@
 
       <div
         class="flex items-center justify-between p-3 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors"
+        :class="{ 'bg-gray-100': selectMenu === 'black' }"
         @click="changeContent('black')"
       >
         <div class="flex items-center gap-2">
@@ -63,7 +66,7 @@
     <div class="resize-handle" @mousedown="handleMouseDown"></div>
 
     <!-- 切换按钮 -->
-    <div class="flex justify-between p-10px">
+    <div class="w-85% flex justify-between p-4px h-35px bg-#EBF0F5 mx-auto rd-8px gap-10px">
       <div
         class="tab-item"
         :class="{ active: listType === 'friends' }"
@@ -100,10 +103,14 @@
         @click.stop="changeContent('friend', item)"
       >
         <div class="flex items-start gap-3">
+          <div v-if="!messageAvatarLoaded[item.id]" class="message-avatar-skeleton"></div>
           <img
             :src="item.friend.avatar || defaultAvatar"
             :alt="item.friend.username"
+            :style="{ display: messageAvatarLoaded[item.id] ? 'block' : 'none' }"
             class="w-10 h-10 rounded-full object-cover"
+            @load="messageAvatarLoaded[item.id] = true"
+            @error="handleAvatarError($event, item)"
           />
           <div class="flex-1">
             <div class="flex items-center justify-between relative">
@@ -136,7 +143,7 @@
         v-for="group in groupList"
         :key="group.id"
         class="friend-card rounded-lg p-2 cursor-pointer"
-        :class="{ 'bg-#F5F5F5 c-#fff': selectGroup?.id === group.id }"
+        :class="{ 'bg-#F5F5F5 c-#fff': selectGroup?.group?.id === group.id }"
         @click.stop="changeContent('groupDetail', group)"
       >
         <div class="flex items-start gap-3">
@@ -158,7 +165,7 @@
     </div>
 
     <!-- 空状态提示 -->
-    <div v-else class="flex flex-col items-center justify-center h-full text-gray-500">
+    <div v-else class="flex flex-col items-center justify-center flex-1 text-gray-500">
       <i i-solar-users-group-rounded-bold-duotone class="text-40px mb-4"></i>
       <p>{{ listType === 'friends' ? '暂无好友' : '暂无群聊' }}</p>
     </div>
@@ -166,7 +173,7 @@
 </template>
 
 <script setup lang="ts">
-import defaultAvatar from '@renderer/assets/imgs/default-avatar.jpg'
+import defaultAvatar from '@renderer/assets/imgs/default-avatar.png'
 import { useUsersStore } from '../store'
 import Add from '@renderer/components/common/add.vue'
 
@@ -183,24 +190,24 @@ const {
   selectGroup,
   toggleListType,
   groupList,
-  getFriendList,
-  getGroupList,
   getGroupDetail
 } = useUsersStore()
 
 const emit = defineEmits(['select'])
-
+const selectMenu = ref('friend')
 // 处理标签切换
 const handleTabChange = (type: 'friends' | 'groups') => {
   if (type !== listType.value) {
     toggleListType()
   }
+  messageAvatarLoaded.value = {}
 }
 
 const changeContent = (
   type: 'notice' | 'group' | 'black' | 'friend' | 'groupDetail',
   item?: any
 ) => {
+  selectMenu.value = type
   switch (type) {
     case 'notice':
       emit('select', 'notice')
@@ -224,6 +231,16 @@ const changeContent = (
       emit('select', 'groupDetail')
       break
   }
+}
+
+// 添加消息头像加载状态
+const messageAvatarLoaded = ref<Record<string, boolean>>({})
+
+// 消息头像错误处理
+const handleAvatarError = (event: Event, item: any) => {
+  const target = event.target as HTMLImageElement
+  target.src = defaultAvatar
+  messageAvatarLoaded.value[item.id] = true
 }
 
 onUnmounted(() => {
@@ -340,12 +357,50 @@ onUnmounted(() => {
 }
 
 .friend-card {
-  box-shadow: 0 0px 5px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 0px 3px rgba(0, 0, 0, 0.1);
   transition: all 0.3s;
 
   &:hover {
-    box-shadow: 0 0px 8px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 0px 4px rgba(0, 0, 0, 0.1);
     transform: translateY(-2px);
+  }
+}
+
+.tab-item {
+  color: gray;
+  flex: 1;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  transition: all 0.3s;
+  cursor: pointer;
+  height: 100%;
+  vertical-align: middle;
+}
+
+.tab-item.active {
+  color: var(--theme-color);
+  background-color: #fff;
+  transition: all 0.3s;
+}
+
+.message-avatar-skeleton {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: skeleton-loading 1.5s infinite;
+}
+
+@keyframes skeleton-loading {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
   }
 }
 </style>

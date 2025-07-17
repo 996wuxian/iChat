@@ -75,7 +75,7 @@
 </template>
 
 <script setup lang="ts">
-import defaultAvatar from '@renderer/assets/imgs/default-avatar.jpg'
+import defaultAvatar from '@renderer/assets/imgs/default-avatar.png'
 import { useUsersStore } from '../store'
 import dayjs from 'dayjs'
 import { UpdateFriend } from '@renderer/service/api/user'

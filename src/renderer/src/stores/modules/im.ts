@@ -5,7 +5,7 @@ import { Local, Session } from '@renderer/utils/storage'
 import { $msg } from '@renderer/config/interaction.config'
 import piniaPersistConfig from '@renderer/utils/persist'
 import { GetChatList } from '@renderer/service/api/user'
-import { findMessagesBetweenUsers } from '@renderer/service/api/message'
+import { findGroupMessages, findMessagesBetweenUsers } from '@renderer/service/api/message'
 
 interface UserList {
   [username: string]: {
@@ -15,7 +15,6 @@ interface UserList {
 }
 interface ChatItem {
   id: number
-  listId: number
   avatar?: string
   username: string
   nickname?: string
@@ -23,8 +22,10 @@ interface ChatItem {
   lastMsgTime: string
   unReadCount: number
   online: string
+  chatType: string
   is_top: string
   is_disturb: string
+  role?: string
 }
 
 interface SystemMessage {
@@ -67,7 +68,7 @@ export const useImStore = defineStore(
           return
         }
 
-        socket.value = io('http://192.168.2.94:9528', {
+        socket.value = io('http://localhost:9528', {
           transports: ['websocket'],
           autoConnect: true
         })
@@ -173,7 +174,8 @@ export const useImStore = defineStore(
                   unReadCount: 0,
                   online: '1',
                   is_top: '0',
-                  is_disturb: '0'
+                  is_disturb: '0',
+                  chatType: 'friend'
                 },
                 msgList: []
               }
@@ -488,20 +490,44 @@ export const useImStore = defineStore(
           console.log(userList.value, 'userList')
 
           res.data.forEach((item: any) => {
-            // 跳过自己的用户ID
-            if (item.friend.id === currentUserId) return
+            // 处理好友聊天
+            if (item.chatType === 'friend') {
+              // 跳过自己的用户ID
+              if (item.friend.id === currentUserId) return
 
-            userList.value[item.friend.username] = {
-              list: {
-                ...item.friend,
-                lastMsg: item.lastMsg,
-                unReadCount: item.unReadCount,
-                is_top: item.is_top,
-                is_disturb: item.is_disturb,
-                listId: item.id,
-                lastMsgTime: new Date(item.lastMsgTime).toLocaleString()
-              },
-              msgList: []
+              userList.value[item.friend.username] = {
+                list: {
+                  ...item.friend,
+                  chatType: 'friend',
+                  lastMsg: item.lastMsg,
+                  unReadCount: item.unReadCount,
+                  is_top: item.is_top,
+                  is_disturb: item.is_disturb,
+                  listId: item.id,
+                  lastMsgTime: item.lastMsgTime ? new Date(item.lastMsgTime).toLocaleString() : ''
+                },
+                msgList: []
+              }
+            }
+            // 处理群聊
+            else if (item.chatType === 'group') {
+              userList.value[item.username] = {
+                list: {
+                  id: item.id,
+                  chatType: 'group',
+                  username: item.username,
+                  nickname: item.name,
+                  avatar: item.avatar,
+                  lastMsg: item.lastMsg,
+                  unReadCount: item.unReadCount || 0,
+                  is_top: item.is_top,
+                  is_disturb: item.is_disturb,
+                  lastMsgTime: item.lastMsgTime ? new Date(item.lastMsgTime).toLocaleString() : '',
+                  online: '1', // 群聊默认在线
+                  role: item.role
+                },
+                msgList: []
+              }
             }
           })
         }
@@ -511,7 +537,7 @@ export const useImStore = defineStore(
     }
 
     // 发送消息
-    const sendMsg = async (receiverId: number, content: string) => {
+    const sendMsg = async (receiverId: number, content: string, type: string) => {
       if (!socket.value || !isConnected.value) {
         try {
           await startReconnect()
@@ -526,32 +552,36 @@ export const useImStore = defineStore(
 
       if (socket.value && isConnected.value) {
         return new Promise((resolve) => {
-          socket.value?.emit(
-            'sendTextMessage',
-            {
-              toUserId: receiverId,
-              message: content
-            },
-            (response: any) => {
-              if (response.code === 200) {
-                if (chatWithUserName.value && userList.value[chatWithUserName.value]) {
-                  userList.value[chatWithUserName.value].msgList.push(response.data)
-                  userList.value[chatWithUserName.value].list.lastMsg =
-                    '[送达]' + response.data.content
-                  userList.value[chatWithUserName.value].list.lastMsgTime = new Date(
-                    response.data.createdAt
-                  ).toLocaleString()
-                }
-                resolve(true)
-              } else {
-                $msg({
-                  type: 'error',
-                  msg: response.msg || '消息发送失败'
-                })
-                resolve(false)
+          const sendData = {
+            message: content,
+            type
+          } as any
+          if (type === 'group') {
+            sendData.groupId = receiverId
+            sendData.isGroup = true
+          } else {
+            sendData.toUserId = receiverId
+          }
+          socket.value?.emit('sendTextMessage', sendData, (response: any) => {
+            console.log('🚀 ~ socket.value?.emit ~ response:', response)
+            if (response.code === 200) {
+              if (chatWithUserName.value && userList.value[chatWithUserName.value]) {
+                userList.value[chatWithUserName.value].msgList.push(response.data)
+                userList.value[chatWithUserName.value].list.lastMsg =
+                  '[送达]' + response.data.content
+                userList.value[chatWithUserName.value].list.lastMsgTime = new Date(
+                  response.data.createdAt
+                ).toLocaleString()
               }
+              resolve(true)
+            } else {
+              $msg({
+                type: 'error',
+                msg: response.msg || '消息发送失败'
+              })
+              resolve(false)
             }
-          )
+          })
         })
       }
 
@@ -607,10 +637,22 @@ export const useImStore = defineStore(
     }
 
     // 获取消息历史记录
-    const getMessageHistory = async (senderId: number, receiverId: number) => {
+    const getMessageHistory = async (
+      senderId: number,
+      receiverId: number,
+      chatType: string = 'friend'
+    ) => {
       try {
         if (msgHistoryEnd.value) return
-        const res = await findMessagesBetweenUsers(senderId, receiverId, msgCurrentPage.value)
+
+        let res
+        // 根据聊天类型调用不同的 API
+        if (chatType === 'group') {
+          res = await findGroupMessages(receiverId, msgCurrentPage.value)
+        } else {
+          res = await findMessagesBetweenUsers(senderId, receiverId, msgCurrentPage.value)
+        }
+
         if (res.code === 200) {
           if (!res.data.list || res.data.list.length === 0) {
             if (chatWithUserName.value && userList.value[chatWithUserName.value]) {

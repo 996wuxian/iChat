@@ -41,12 +41,16 @@
             </div>
           </template>
           <template v-else>
+            <div v-if="!messageAvatarLoaded[msg.id]" class="message-avatar-skeleton"></div>
             <img
               :src="isCurrentUser(msg) ? currentUserAvatar : selectedChat.avatar || defaultAvatar"
               :alt="isCurrentUser(msg) ? '我' : selectedChat.nickname"
+              :style="{ display: messageAvatarLoaded[msg.id] ? 'block' : 'none' }"
               class="message-avatar"
+              @load="messageAvatarLoaded[msg.id] = true"
+              @error="handleAvatarError($event, msg)"
             />
-            <div class="message-content" @contextmenu.prevent="handleContextMenu($event, msg)">
+            <div class="message-content" @contextmenu.prevent="handleContextMenu($event, msg, '')">
               <div
                 v-if="msg.type === 'text'"
                 class="message-text"
@@ -331,7 +335,7 @@ import Audio from './audio.vue'
 
 import { ref, computed, watch, nextTick, onMounted, onUnmounted } from 'vue'
 import { useHomeStore } from '../store'
-import defaultAvatar from '@renderer/assets/imgs/default-avatar.jpg'
+import defaultAvatar from '@renderer/assets/imgs/default-avatar.png'
 import { formatTime, throttle } from '@renderer/utils/tools'
 import type { Message } from '../store/index'
 import { useRoute } from 'vue-router'
@@ -805,6 +809,24 @@ const getFileIcon = (fileType: string | undefined) => {
   }
 }
 
+// 添加消息头像加载状态
+const messageAvatarLoaded = ref<Record<string, boolean>>({})
+
+// 消息头像错误处理
+const handleAvatarError = (event: Event, msg: Message) => {
+  const target = event.target as HTMLImageElement
+  target.src = defaultAvatar
+  messageAvatarLoaded.value[msg.id] = true
+}
+
+// 监听选中聊天的变化，重置头像加载状态
+watch(selectedChat, () => {
+  if (selectedChat.value) {
+    // 清空头像加载状态
+    messageAvatarLoaded.value = {}
+  }
+})
+
 // 修改发送消息后清空输入框的逻辑
 watch(messageContent, (newVal, oldVal) => {
   if (oldVal && !newVal && messageInputRef.value) {
@@ -957,11 +979,30 @@ onUnmounted(() => {
   }
 }
 
+.message-avatar-skeleton {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: skeleton-loading 1.5s infinite;
+}
+
 .message-avatar {
   width: 40px;
   height: 40px;
   border-radius: 50%;
   flex-shrink: 0;
+  object-fit: cover;
+}
+
+@keyframes skeleton-loading {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
 }
 
 .message-text {

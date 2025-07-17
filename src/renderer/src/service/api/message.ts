@@ -51,3 +51,23 @@ export function uploadFileStatus(
     showMsg
   })
 }
+
+// 获取群聊的消息记录
+export function findGroupMessages(
+  groupId: number,
+  page: number = 1,
+  pageSize: number = 20,
+  showLoading: boolean = true,
+  showMsg: boolean = false
+) {
+  return request<any>({
+    method: 'get',
+    url: `${module}group/${groupId}`,
+    params: {
+      page,
+      pageSize
+    },
+    showLoading,
+    showMsg
+  })
+}

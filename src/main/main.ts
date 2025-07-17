@@ -1,13 +1,4 @@
-import {
-  app,
-  BrowserWindow,
-  dialog,
-  ipcMain,
-  Menu,
-  Tray,
-  Notification,
-  nativeImage
-} from 'electron'
+import { app, BrowserWindow, dialog, ipcMain, Menu, Tray } from 'electron'
 import { join } from 'path'
 import { is } from '@electron-toolkit/utils'
 import { shell } from 'electron'

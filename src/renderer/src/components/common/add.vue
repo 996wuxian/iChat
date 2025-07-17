@@ -1,5 +1,5 @@
 <template>
-  <div ref="addMenuRef" class="relative shrink-0 flex">
+  <div ref="addMenuRef" class="relative shrink-0 flex no-drag">
     <i i-solar-add-square-line-duotone class="add-icon" @click="showAddMenu = !showAddMenu"></i>
     <!-- 添加菜单 -->
     <div v-if="showAddMenu" class="add-menu theme-bg color-[var(--text-primary)]">
@@ -288,7 +288,7 @@
 
 <script setup lang="ts">
 import { onMounted, onUnmounted, ref } from 'vue'
-import defaultAvatar from '@renderer/assets/imgs/default-avatar.jpg'
+import defaultAvatar from '@renderer/assets/imgs/default-avatar.png'
 import {
   AddFriend,
   CreateGroup,

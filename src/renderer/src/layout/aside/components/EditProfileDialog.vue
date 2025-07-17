@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import useUserStore from '@renderer/stores/modules/user'
-import defaultAvatar from '@renderer/assets/imgs/default-avatar.jpg'
+import defaultAvatar from '@renderer/assets/imgs/default-avatar.png'
 import { UpdateUserInfo, GetUserInfo } from '@renderer/service/api/user'
 import { uploadFile } from '@renderer/service/api/upload'
 import { $msg } from '@renderer/config/interaction.config'

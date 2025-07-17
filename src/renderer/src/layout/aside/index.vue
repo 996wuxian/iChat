@@ -6,7 +6,7 @@ import { Local, Session } from '@renderer/utils/storage'
 import { $msg } from '@renderer/config/interaction.config'
 import { useImStore } from '@renderer/stores/modules/im'
 import useUserStore from '@renderer/stores/modules/user'
-import defaultAvatar from '@renderer/assets/imgs/default-avatar.jpg'
+import defaultAvatar from '@renderer/assets/imgs/default-avatar.png'
 import EditProfileDialog from './components/EditProfileDialog.vue'
 import { useLayoutStore } from '../store'
 const { isLocked, showLockDialog, lockPassword } = useLayoutStore()
