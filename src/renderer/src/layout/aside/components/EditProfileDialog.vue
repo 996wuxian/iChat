@@ -104,7 +104,7 @@ const handleClose = () => {
 
 <template>
   <div v-if="modelValue" class="fixed inset-0 bg-black/30 z-50 flex items-center justify-center">
-    <div class="bg-white rounded-lg w-400px overflow-hidden animate-fade-in">
+    <div class="bg-white rounded-lg w-400px overflow-hidden">
       <!-- 头部 -->
       <div class="p-10px border-b border-gray-100 flex items-center justify-between">
         <h3 class="text-14px font-400">编辑个人资料</h3>

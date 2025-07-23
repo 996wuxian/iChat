@@ -118,7 +118,7 @@
                 {{ item.friend.nickname || item.friend.username }}
               </h3>
               <span
-                class="absolute right-1 top-1 w-3 h-3 border-2 border-white rounded-full transition-all"
+                class="absolute right-1 top-1 w-3 h-3 border-2 border-#DBDEE1 border b-solid rounded-full transition-all"
                 :class="item.friend.online === '1' ? 'bg-green-500' : 'bg-gray-400'"
               ></span>
             </div>

@@ -113,6 +113,7 @@ const handleLogout = () => {
   imStore.disconnect()
   Session.clear()
   Local.clear()
+  window.api.clearAutoLogin()
   window.api.logout()
   imStore.notices = []
   imStore.noticeCount = 0

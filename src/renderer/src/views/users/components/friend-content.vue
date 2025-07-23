@@ -63,6 +63,17 @@ const options = [
     icon: () => h('i', { class: 'i-solar-user-cross-rounded-line-duotone' })
   }
 ]
+
+// 添加消息头像加载状态
+const messageAvatarLoaded = ref<Record<string, boolean>>({})
+
+// 消息头像错误处理
+const handleAvatarError = (event: Event, item: any) => {
+  const target = event.target as HTMLImageElement
+  target.src = defaultAvatar
+  messageAvatarLoaded.value[item.id] = true
+}
+
 const handleSelect = (key: string | number) => {}
 </script>
 
@@ -74,10 +85,18 @@ const handleSelect = (key: string | number) => {}
         <!-- 头部信息 -->
         <div class="flex items-start gap-20px mb-20px">
           <div class="relative">
+            <div
+              v-if="!messageAvatarLoaded[selectedFriend.id]"
+              class="message-avatar-skeleton"
+            ></div>
+
             <img
               :src="selectedFriend.avatar || defaultAvatar"
               :alt="selectedFriend.username"
+              :style="{ display: messageAvatarLoaded[selectedFriend.id] ? 'block' : 'none' }"
               class="w-70px h-70px rounded-full object-cover border-2 border-gray-100"
+              @load="messageAvatarLoaded[selectedFriend.id] = true"
+              @error="handleAvatarError($event, selectedFriend)"
             />
             <!-- 简化的在线状态指示器 -->
             <span
@@ -174,5 +193,23 @@ const handleSelect = (key: string | number) => {}
 <style scoped lang="scss">
 .box {
   padding: 20px;
+}
+
+.message-avatar-skeleton {
+  width: 70px;
+  height: 70px;
+  border-radius: 50%;
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: skeleton-loading 1.5s infinite;
+}
+
+@keyframes skeleton-loading {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
 }
 </style>

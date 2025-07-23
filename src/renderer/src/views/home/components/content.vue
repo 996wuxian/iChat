@@ -43,7 +43,7 @@
           <template v-else>
             <div v-if="!messageAvatarLoaded[msg.id]" class="message-avatar-skeleton"></div>
             <img
-              :src="isCurrentUser(msg) ? currentUserAvatar : selectedChat.avatar || defaultAvatar"
+              :src="isCurrentUser(msg) ? currentUserAvatar : getMessageAvatar(msg)"
               :alt="isCurrentUser(msg) ? '我' : selectedChat.nickname"
               :style="{ display: messageAvatarLoaded[msg.id] ? 'block' : 'none' }"
               class="message-avatar"
@@ -54,9 +54,14 @@
               <div
                 v-if="msg.type === 'text'"
                 class="message-text"
-                :class="
-                  isCurrentUser(msg) ? 'bg-[var(--theme-color)] c-white ml-auto' : 'bg-#E5E5E5'
-                "
+                :class="[
+                  !isOnlyImages(msg.content)
+                    ? isCurrentUser(msg)
+                      ? 'bg-[var(--theme-color)] c-white ml-auto'
+                      : 'bg-#E5E5E5'
+                    : '',
+                  isOnlyImages(msg.content) ? 'bg-transparent' : ''
+                ]"
                 @copy="handleMessageCopy($event)"
               >
                 <div class="flex items-end">
@@ -69,7 +74,7 @@
                       v-if="part.type === 'image'"
                       :src="part.src"
                       :class="[
-                        part.dataType === 'emoji' ? part.class : 'w-100px h-100px rd-8px',
+                        part.dataType === 'emoji' ? part.class : 'w-300px rd-8px',
                         'cursor-pointer'
                       ]"
                       @click.stop="part.dataType !== 'emoji' && showImagePreview(part.src)"
@@ -323,8 +328,19 @@
 
   <!-- 添加图片预览组件 -->
   <div v-if="previewImage" class="image-preview-overlay" @click="closePreview">
-    <div class="image-preview-content">
-      <img :src="previewImage" alt="预览图片" />
+    <div class="image-preview-content" @click.stop>
+      <img
+        :src="previewImage"
+        alt="预览图片"
+        :style="{ transform: `scale(${imageScale})` }"
+        class="rd-10px"
+        @wheel="handleImageWheel"
+        @click.stop
+      />
+      <div class="preview-controls">
+        <span class="scale-info">{{ Math.round(imageScale * 100) }}%</span>
+        <button @click="resetImageScale" class="reset-btn">重置</button>
+      </div>
     </div>
   </div>
 </template>
@@ -383,6 +399,33 @@ const handleSelectImage = () => {
 
 // 添加图片预览相关的状态
 const previewImage = ref<string | null>(null)
+// 添加图片缩放相关状态
+const imageScale = ref(1)
+const minScale = 0.1
+const maxScale = 5
+
+// 处理鼠标滚轮缩放
+const handleImageWheel = (e: WheelEvent) => {
+  e.preventDefault()
+
+  const delta = e.deltaY > 0 ? -0.1 : 0.1
+  const newScale = imageScale.value + delta
+
+  if (newScale >= minScale && newScale <= maxScale) {
+    imageScale.value = newScale
+  }
+}
+
+// 重置图片缩放
+const resetImageScale = () => {
+  imageScale.value = 1
+}
+
+// 检查消息是否只包含图片
+const isOnlyImages = (content: string) => {
+  const parts = parseMessageContent(content)
+  return parts.length > 0 && parts.every((part) => part.type === 'image')
+}
 
 // 解析消息内容
 const parseMessageContent = (content: string) => {
@@ -422,6 +465,7 @@ const showImagePreview = (src: string) => {
 // 关闭图片预览
 const closePreview = () => {
   previewImage.value = null
+  imageScale.value = 1
 }
 
 // 添加移除引用的方法
@@ -549,6 +593,17 @@ const handleMessageCopy = (e: ClipboardEvent) => {
 const emojiList = computed(() => {
   return userStore.emojiList
 })
+
+// 获取消息头像
+const getMessageAvatar = (msg: any) => {
+  if (!selectedChat.value) return defaultAvatar
+  // 如果是群聊，使用发送者的头像
+  if (selectedChat.value.chatType === 'group') {
+    return msg.sender?.avatar || defaultAvatar
+  }
+  // 如果是私聊，使用选中聊天的头像
+  return selectedChat.value.avatar || defaultAvatar
+}
 
 // 修改插入表情的方法
 const insertEmoji = (emoji: { name: string; url: string }) => {
@@ -1136,32 +1191,71 @@ onUnmounted(() => {
   }
 }
 
-// 图片预览相关样式
 .image-preview-overlay {
   position: fixed;
   top: 0;
   left: 0;
-  right: 0;
-  bottom: 0;
+  width: 100vw;
+  height: 100vh;
   background: rgba(0, 0, 0, 0.8);
   display: flex;
-  justify-content: center;
   align-items: center;
-  z-index: 1000;
-  cursor: zoom-out;
+  justify-content: center;
+  z-index: 9999;
+  cursor: pointer;
 }
 
 .image-preview-content {
-  width: 100%;
-  height: 100%;
-  display: flex;
-  justify-content: center;
-  align-items: center;
+  position: relative;
+  max-width: 90vw;
+  max-height: 90vh;
+  cursor: default;
 
   img {
-    max-width: 50%;
-    max-height: 50%;
+    max-width: 100%;
+    max-height: 100%;
     object-fit: contain;
+    transition: transform 0.1s ease;
+    cursor: grab;
+
+    &:active {
+      cursor: grabbing;
+    }
+  }
+}
+
+.preview-controls {
+  position: absolute;
+  bottom: -40px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(0, 0, 0, 0.7);
+  padding: 8px 16px;
+  border-radius: 20px;
+  color: white;
+  font-size: 14px;
+
+  .scale-info {
+    min-width: 50px;
+    text-align: center;
+  }
+
+  .reset-btn {
+    background: rgba(255, 255, 255, 0.2);
+    border: none;
+    color: white;
+    padding: 4px 12px;
+    border-radius: 12px;
+    cursor: pointer;
+    font-size: 12px;
+    transition: background 0.2s;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.3);
+    }
   }
 }
 

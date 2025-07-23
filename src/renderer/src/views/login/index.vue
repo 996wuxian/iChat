@@ -15,11 +15,45 @@ const password = ref('')
 const phone = ref('')
 const isLoggingIn = ref(false)
 const showHistory = ref(false)
-const historyAccounts = ref(['admin', 'test']) // 这里可以从本地存储获取历史账号
+const historyAccounts = ref<any[]>([])
 const isRegisterMode = ref(false)
 const showpassword = ref(false)
 const showMoreOptions = ref(false)
 const successVisible = ref(false)
+const rememberPassword = ref(false) // 记住密码
+const autoLogin = ref(false) // 自动登录
+
+// 加载历史账号
+const loadHistoryAccounts = async () => {
+  try {
+    const accounts = await window.api.getAccounts()
+    historyAccounts.value = accounts
+
+    // 如果存在历史账号且当前用户名为空，自动选择第一个账号
+    if (accounts.length > 0 && !username.value) {
+      await selectAccount(accounts[0])
+    }
+  } catch (error) {
+    console.error('加载历史账号失败:', error)
+  }
+}
+
+// 检查自动登录
+const checkAutoLogin = async () => {
+  try {
+    const autoLoginAccount = await window.api.getAutoLoginAccount()
+    if (autoLoginAccount) {
+      username.value = autoLoginAccount.username
+      password.value = autoLoginAccount.password
+      autoLogin.value = true
+      rememberPassword.value = true
+      // 自动执行登录
+      await handleLogin()
+    }
+  } catch (error) {
+    console.error('检查自动登录失败:', error)
+  }
+}
 
 const handleRegister = () => {
   isRegisterMode.value = true
@@ -104,6 +138,26 @@ const handleLogin = async () => {
   isLoggingIn.value = false
 
   if (code !== 200) return
+
+  // 登录成功后保存账号信息
+  try {
+    // 如果选择了自动登录，先清除其他账号的自动登录状态
+    if (autoLogin.value) {
+      await window.api.clearAutoLogin()
+    }
+    // 总是保存账号信息，但根据选项决定是否保存密码
+    await window.api.saveAccount(
+      username.value,
+      password.value,
+      autoLogin.value,
+      rememberPassword.value
+    )
+    // 重新加载历史账号列表
+    await loadHistoryAccounts()
+  } catch (error) {
+    console.error('保存账号信息失败:', error)
+  }
+
   // 这里模拟登录成功
   await Session.set('token', data.token)
   await Session.set('refresh_token', data.refresh_token)
@@ -122,9 +176,13 @@ const handleLoginReply = (data: string) => {
 }
 
 // 组件挂载时添加事件监听
-onMounted(() => {
+onMounted(async () => {
   // 移除可能存在的旧监听器
   window.api.onLoginReply(handleLoginReply)
+  // 加载历史账号
+  await loadHistoryAccounts()
+  // 检查自动登录
+  await checkAutoLogin()
 })
 
 const showPassword = ref(false)
@@ -145,15 +203,37 @@ const clearPassword = () => {
   password.value = ''
 }
 
-const selectAccount = (account: string) => {
-  username.value = account
+const selectAccount = async (account: any) => {
+  username.value = account.username
   showHistory.value = false
+
+  try {
+    const accounts = await window.api.getAccounts()
+    const fullAccount = accounts.find((acc: any) => acc.username === account.username)
+    if (fullAccount) {
+      password.value = fullAccount.password || ''
+      rememberPassword.value = fullAccount.rememberPassword || false
+      autoLogin.value = fullAccount.autoLogin || false
+    }
+  } catch (error) {
+    console.error('获取账号详情失败:', error)
+  }
 }
 
-const deleteUser = (val: any) => {
-  const index = historyAccounts.value.indexOf(val)
-  if (index !== -1) {
-    historyAccounts.value.splice(index, 1)
+const deleteUser = async (account: any) => {
+  try {
+    await window.api.removeAccount(account.username)
+    await loadHistoryAccounts()
+    $msg({
+      type: 'success',
+      msg: '删除成功'
+    })
+  } catch (error) {
+    console.error('删除账号失败:', error)
+    $msg({
+      type: 'error',
+      msg: '删除失败'
+    })
   }
 }
 
@@ -209,6 +289,7 @@ async function copyToClipboard(text: any) {
           type="text"
           placeholder="请输入账号"
           class="outline-none border-none w-100px text-16px placeholder:text-[#777] bg-transparent text-primary text-center"
+          maxlength="10"
         />
         <div
           class="absolute right-12px top-1/2 -translate-y-1/2 flex items-center gap-8px text-[#777]"
@@ -233,23 +314,24 @@ async function copyToClipboard(text: any) {
         >
           <div
             v-for="account in historyAccounts"
-            :key="account"
+            :key="account.username"
             class="px-12px py-8px hover:bg-gray cursor-pointer text-primary transition-all duration-300 rd-8px flex justify-between items-center"
             @click="selectAccount(account)"
           >
-            {{ account }}
+            {{ account.username }}
             <i i-solar-close-circle-outline @click.stop="deleteUser(account)"></i>
           </div>
         </div>
       </div>
       <div
-        class="mb-20px w-full p-12px border border-[#ddd] rounded-8px shadow-[0px_0px_10px_rgba(0,0,0,0.1)] text-center bg-[var(--input-bg)] relative"
+        class="mb-10px w-full p-12px border border-[#ddd] rounded-8px shadow-[0px_0px_10px_rgba(0,0,0,0.1)] text-center bg-[var(--input-bg)] relative"
       >
         <input
           v-model="password"
           :type="showPassword ? 'text' : 'password'"
           placeholder="请输入密码"
           class="outline-none border-none w-100px text-16px placeholder:text-[#777] bg-transparent text-primary text-center"
+          maxlength="20"
         />
         <div
           class="absolute right-12px top-1/2 -translate-y-1/2 flex items-center gap-10px text-[#777]"
@@ -274,6 +356,32 @@ async function copyToClipboard(text: any) {
           ></i>
         </div>
       </div>
+
+      <!-- 记住密码和自动登录选项 -->
+      <div class="mb-5px flex gap-8px text-12px justify-between">
+        <label
+          class="flex items-center gap-8px cursor-pointer text-[#777] hover:text-primary transition-colors"
+        >
+          <input
+            v-model="rememberPassword"
+            type="checkbox"
+            class="w-14px h-14px accent-[var(--theme-color)]"
+          />
+          <span>记住密码</span>
+        </label>
+        <label
+          v-if="rememberPassword"
+          class="flex items-center gap-8px cursor-pointer text-[#777] hover:text-primary transition-colors"
+        >
+          <input
+            v-model="autoLogin"
+            type="checkbox"
+            class="w-14px h-14px accent-[var(--theme-color)]"
+          />
+          <span>自动登录</span>
+        </label>
+      </div>
+
       <button
         :disabled="isLoggingIn"
         class="w-full p-10px text-white border-none rounded-8px cursor-pointer text-14px disabled:cursor-not-allowed bg-[var(--theme-color)] hover:bg-[#8ea0fa] transition-all"
@@ -284,7 +392,7 @@ async function copyToClipboard(text: any) {
     </div>
     <div
       v-if="!isRegisterMode"
-      class="flex items-center gap-20px mt-30px color-[var(--theme-color)] text-14px cursor-pointer no-drag hover:color-[#8ea0fa] transition-all"
+      class="flex items-center gap-20px mt-20px color-[var(--theme-color)] text-14px cursor-pointer no-drag hover:color-[#8ea0fa] transition-all"
     >
       <div>扫码登录</div>
       <div class="relative">
@@ -294,13 +402,13 @@ async function copyToClipboard(text: any) {
           class="absolute left-50% -translate-x-50% -top-90px theme-bg rounded-4px shadow-lg z-10 text-center min-w-100px p-5px"
         >
           <div
-            class="px-12px py-8px hover:bg-gray cursor-pointer text-primary transition-all duration-300 rd-8px"
+            class="px-12px py-8px hover:bg-gray cursor-pointer hover:c-[#fff] transition-all duration-300 rd-8px"
             @click="handleRegister"
           >
             注册用户
           </div>
           <div
-            class="px-12px py-8px hover:bg-gray cursor-pointer text-primary transition-all duration-300 rd-8px"
+            class="px-12px py-8px hover:bg-gray cursor-pointer hover:c-[#fff] transition-all duration-300 rd-8px"
           >
             找回密码
           </div>
@@ -318,6 +426,7 @@ async function copyToClipboard(text: any) {
           type="text"
           placeholder="请输入昵称"
           class="outline-none border-none w-100px text-16px placeholder:text-[#777] bg-transparent text-primary text-center"
+          maxlength="10"
         />
         <div
           class="absolute right-12px top-1/2 -translate-y-1/2 flex items-center gap-8px text-[#777]"
@@ -338,6 +447,7 @@ async function copyToClipboard(text: any) {
           type="tel"
           placeholder="请输入手机号"
           class="outline-none border-none w-100px text-16px placeholder:text-[#777] bg-transparent text-primary text-center"
+          maxlength="11"
         />
         <div
           class="absolute right-12px top-1/2 -translate-y-1/2 flex items-center gap-8px text-[#777]"
@@ -358,6 +468,7 @@ async function copyToClipboard(text: any) {
           :type="showpassword ? 'text' : 'password'"
           placeholder="请输入密码"
           class="outline-none border-none w-100px text-16px placeholder:text-[#777] bg-transparent text-primary text-center"
+          maxlength="20"
         />
         <div
           class="absolute right-12px top-1/2 -translate-y-1/2 flex items-center gap-10px text-[#777]"

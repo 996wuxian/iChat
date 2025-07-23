@@ -290,6 +290,62 @@ export const useImStore = defineStore(
             }
           }
         )
+
+        // 收到群聊消息
+        socket.value.on('receiveGroupMessage', async (message: any) => {
+          // 需要找到对应的群聊username
+          // 由于消息中只有groupId，需要在userList中找到对应的群聊
+          let groupUsername = null
+          for (const [username, chatData] of Object.entries(userList.value)) {
+            if (chatData.list.chatType === 'group' && chatData.list.id === message.groupId) {
+              groupUsername = username
+              break
+            }
+          }
+
+          // 如果找不到对应的群聊，重新获取聊天列表
+          if (!groupUsername) {
+            console.log(`群聊 ${message.groupId} 不在聊天列表中，重新获取列表`)
+            await getChatList()
+
+            // 重新查找
+            for (const [username, chatData] of Object.entries(userList.value)) {
+              if (chatData.list.chatType === 'group' && chatData.list.id === message.groupId) {
+                groupUsername = username
+                break
+              }
+            }
+          }
+
+          // 如果仍然找不到，说明可能是新群聊或数据异常
+          if (!groupUsername) {
+            console.warn(`无法找到群聊 ${message.groupId} 的对应记录`)
+            return
+          }
+
+          // 将消息添加到群聊的消息列表中
+          userList.value[groupUsername].msgList.push(message)
+          userList.value[groupUsername].list.lastMsg = message.content
+          userList.value[groupUsername].list.lastMsgTime = new Date(
+            message.createdAt
+          ).toLocaleString()
+
+          // 处理未读消息计数
+          if (chatWithUserName.value && userList.value[chatWithUserName.value]) {
+            if (chatWithUserName.value === groupUsername) {
+              // 如果当前正在查看这个群聊，标记为已读
+              userList.value[groupUsername].list.unReadCount = 0
+              // 如果有群聊消息已读接口，可以调用
+              // oneMsgRead(message.id)
+            } else {
+              // 如果不是当前查看的群聊，增加未读计数
+              userList.value[groupUsername].list.unReadCount++
+            }
+          } else {
+            // 如果没有选中任何聊天，增加未读计数
+            userList.value[groupUsername].list.unReadCount++
+          }
+        })
       }
     }
 
@@ -649,6 +705,7 @@ export const useImStore = defineStore(
         // 根据聊天类型调用不同的 API
         if (chatType === 'group') {
           res = await findGroupMessages(receiverId, msgCurrentPage.value)
+          console.log('🚀 ~ res:', res)
         } else {
           res = await findMessagesBetweenUsers(senderId, receiverId, msgCurrentPage.value)
         }

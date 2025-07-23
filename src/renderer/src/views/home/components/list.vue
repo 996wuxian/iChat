@@ -29,7 +29,7 @@
             :alt="user.nickname"
             :style="{ display: avatarLoaded[user.id] ? 'block' : 'none' }"
             @load="avatarLoaded[user.id] = true"
-            @error="handleAvatarError($event)"
+            @error="handleAvatarError($event, user.id)"
           />
           <span
             v-if="user.unReadCount > 0"
@@ -44,7 +44,7 @@
         <div class="user-info">
           <div class="user-header">
             <span class="nickname">{{ user.nickname || user.username }}</span>
-            <span class="time ml-auto">{{ formatTime(user.lastMsgTime) }}</span>
+            <span class="time ml-auto line-clamp-1">{{ formatTime(user.lastMsgTime) }}</span>
             <i
               v-if="user?.is_top === '1'"
               i-solar-pin-list-broken
@@ -185,7 +185,7 @@ const parseMessageContent = (content: string) => {
 const avatarLoaded = ref<Record<string, boolean>>({})
 
 // 头像错误处理
-const handleAvatarError = (event: Event, userId: string) => {
+const handleAvatarError = (event: Event, userId: number) => {
   const target = event.target as HTMLImageElement
   target.src = defaultAvatar
   avatarLoaded.value[userId] = true

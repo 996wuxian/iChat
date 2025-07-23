@@ -2,21 +2,35 @@
   <div
     class="absolute right-20px top-10px z-99999 no-drag flex cursor-pointer gap-15px text-18px c-#000"
   >
-    <i i-solar-screen-share-line-duotone title="上滑收缩" @click="collapseWindow"></i>
-    <i i-solar-minimize-square-3-line-duotone title="最小化" @click="minimizeWindow"></i>
-    <i
-      v-if="!isMaximized"
-      i-solar-maximize-square-minimalistic-line-duotone
-      title="全屏"
-      @click="maximizeWindow"
-    ></i>
-    <i
-      v-else
-      i-solar-minimize-square-minimalistic-line-duotone
-      title="还原"
-      @click="maximizeWindow"
-    ></i>
-    <i i-solar-close-circle-outline title="关闭" @click="closeWindow"></i>
+    <n-tooltip trigger="hover">
+      <template #trigger>
+        <i i-solar-screen-share-line-duotone @click="collapseWindow"></i>
+      </template>
+      上滑收缩
+    </n-tooltip>
+    <n-tooltip trigger="hover">
+      <template #trigger>
+        <i i-solar-minimize-square-3-line-duotone @click="minimizeWindow"></i>
+      </template>
+      最小化
+    </n-tooltip>
+    <n-tooltip trigger="hover">
+      <template #trigger>
+        <i
+          v-if="!isMaximized"
+          i-solar-maximize-square-minimalistic-line-duotone
+          @click="maximizeWindow"
+        ></i>
+        <i v-else i-solar-minimize-square-minimalistic-line-duotone @click="maximizeWindow"></i>
+      </template>
+      {{ isMaximized ? '还原' : '全屏' }}
+    </n-tooltip>
+    <n-tooltip trigger="hover">
+      <template #trigger>
+        <i i-solar-close-circle-outline @click="closeWindow"></i>
+      </template>
+      关闭
+    </n-tooltip>
   </div>
 </template>
 

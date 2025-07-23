@@ -48,7 +48,14 @@
         <div v-if="searchResult.length > 0" class="search-results mt-4">
           <div v-for="user in searchResult" :key="user.id" class="search-result-item">
             <div class="flex items-center gap-10px">
-              <img class="w-40px h-40px rd-50%" :src="user.avatar ? user.avatar : defaultAvatar" />
+              <div v-if="!messageAvatarLoaded[user.id]" class="message-avatar-skeleton"></div>
+              <img
+                class="w-40px h-40px rd-50%"
+                :src="user.avatar ? user.avatar : defaultAvatar"
+                :style="{ display: messageAvatarLoaded[user.id] ? 'block' : 'none' }"
+                @load="messageAvatarLoaded[user.id] = true"
+                @error="handleAvatarError($event, user)"
+              />
               <div class="user-detail">
                 <span>{{ user.nickname }}</span>
               </div>
@@ -578,6 +585,16 @@ const handleCreateGroup = async () => {
   }
 }
 
+// 添加消息头像加载状态
+const messageAvatarLoaded = ref<Record<string, boolean>>({})
+
+// 消息头像错误处理
+const handleAvatarError = (event: Event, item: any) => {
+  const target = event.target as HTMLImageElement
+  target.src = defaultAvatar
+  messageAvatarLoaded.value[item.id] = true
+}
+
 // 监听创建群聊弹窗关闭，清空输入框和选择
 watch(showCreateGroupDialog, (newVal) => {
   if (!newVal) {
@@ -695,6 +712,24 @@ onUnmounted(() => {
   transition: all 0.3s;
   &:hover {
     background: rgba(153, 153, 153, 0.3);
+  }
+}
+
+.message-avatar-skeleton {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: skeleton-loading 1.5s infinite;
+}
+
+@keyframes skeleton-loading {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
   }
 }
 </style>

@@ -90,6 +90,7 @@ const messages = ref<Message[]>()
 
 const handleSelectChat = async (user: any) => {
   selectedChat.value = user
+  console.log('🚀 ~ handleSelectChat ~ selectedChat.value:', selectedChat.value)
   imStore.receiveId = user.id
   imStore.chatWithUserName = user.username
   recordVisible.value = false

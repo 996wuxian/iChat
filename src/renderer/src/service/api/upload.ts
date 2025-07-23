@@ -3,7 +3,7 @@ import request from '../request'
 const module = 'upload/'
 
 // 上传单个文件
-export function uploadFile(data?: any, showLoading: boolean = true, showMsg: boolean = true) {
+export function uploadFile(data?: any, showLoading: boolean = false, showMsg: boolean = false) {
   return request<any>({
     method: 'post',
     url: `${module}`,

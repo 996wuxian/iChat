@@ -85,6 +85,34 @@ export const ipcApi = {
   hideToTray: () => {
     ipcRenderer.send('hide-to-tray')
   },
+  // 账号存储相关的IPC方法
+  saveAccount: (
+    username: string,
+    password: string,
+    autoLogin: boolean,
+    rememberPassword: boolean = false
+  ) => {
+    console.log(
+      username,
+      password,
+      autoLogin,
+      rememberPassword,
+      'username, password, autoLogin, rememberPassword'
+    )
+    return ipcRenderer.invoke('save-account', { username, password, autoLogin, rememberPassword })
+  },
+  getAccounts: () => {
+    return ipcRenderer.invoke('get-accounts')
+  },
+  getAutoLoginAccount: () => {
+    return ipcRenderer.invoke('get-auto-login-account')
+  },
+  removeAccount: (username: string) => {
+    return ipcRenderer.invoke('remove-account', username)
+  },
+  clearAutoLogin: () => {
+    return ipcRenderer.invoke('clear-auto-login')
+  },
   closeWindow: () => {
     ipcRenderer.send('close-window')
   }
