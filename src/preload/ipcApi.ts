@@ -59,6 +59,9 @@ export const ipcApi = {
       callback(collapsed)
     })
   },
+  expandGroupPanel: () => {
+    ipcRenderer.send('expand-group-panel')
+  },
   sendNotification: (
     title: string,
     body: string,

@@ -93,6 +93,7 @@ const handleSelectChat = async (user: any) => {
   console.log('🚀 ~ handleSelectChat ~ selectedChat.value:', selectedChat.value)
   imStore.receiveId = user.id
   imStore.chatWithUserName = user.username
+  imStore.chatType = user.chatType
   recordVisible.value = false
 
   // 清空当前消息列表
@@ -114,12 +115,25 @@ const handleSelectChat = async (user: any) => {
       // 创建一个本地副本，避免引用问题
       messages.value = [...userList.value[user.username].msgList]
 
-      const unReadCountMessages = messages.value.filter(
-        (msg) => msg.status === '0' && msg.senderId === user.id
-      )
+      // 根据聊天类型处理已读逻辑
+      if (user.chatType === 'group') {
+        window.api.expandGroupPanel()
 
-      if (unReadCountMessages.length > 0) {
-        imStore.allMsgRead(user.id)
+        // 群聊：检查是否有未读消息，如果有则标记群聊为已读
+        const hasUnreadMessages = userList.value[user.username].list.unReadCount > 0
+        console.log('🚀 ~ handleSelectChat ~ hasUnreadMessages:', hasUnreadMessages)
+        if (hasUnreadMessages) {
+          imStore.groupAllMsgRead(user.id)
+        }
+      } else {
+        // 私聊：原有逻辑
+        const unReadCountMessages = messages.value.filter(
+          (msg) => msg.status === '0' && msg.senderId === user.id
+        )
+
+        if (unReadCountMessages.length > 0) {
+          imStore.allMsgRead(user.id)
+        }
       }
     } else {
       console.error('无法获取消息列表:', user.username)

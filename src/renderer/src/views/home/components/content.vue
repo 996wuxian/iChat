@@ -4,7 +4,10 @@
     <div class="chat-header">
       <div class="chat-title">
         {{ selectedChat.nickname || selectedChat.username }}
-        <!-- <span class="text-11px ml-10px c-gray typing-dots">正在输入中</span> -->
+        <span v-if="isCurrentChatTyping" class="text-11px ml-10px c-gray typing-dots">
+          正在输入中
+          <span class="typing-animation"></span>
+        </span>
       </div>
       <div class="flex ml-auto mt-auto cursor-pointer mb-5px text-20px">
         <i i-solar-menu-dots-bold-duotone></i>
@@ -219,6 +222,28 @@
             </div>
           </template>
         </div>
+
+        <!-- 添加正在输入的气泡 -->
+        <div v-if="isCurrentChatTyping" class="message-item typing-message">
+          <div v-if="!messageAvatarLoaded['typing']" class="message-avatar-skeleton"></div>
+          <img
+            :src="getMessageAvatar({ sender: selectedChat })"
+            :alt="selectedChat.nickname"
+            :style="{ display: messageAvatarLoaded['typing'] ? 'block' : 'none' }"
+            class="message-avatar"
+            @load="messageAvatarLoaded['typing'] = true"
+            @error="handleAvatarError($event, { id: 'typing' })"
+          />
+          <div class="message-content">
+            <div class="message-text bg-#E5E5E5 typing-bubble">
+              <div class="typing-indicator">
+                <span class="typing-dot"></span>
+                <span class="typing-dot"></span>
+                <span class="typing-dot"></span>
+              </div>
+            </div>
+          </div>
+        </div>
       </n-scrollbar>
     </div>
 
@@ -391,6 +416,35 @@ const scrollbarRef = ref()
 const imageLoaded = ref<Record<string, boolean>>({})
 const showEmojiPopup = ref(false)
 const fileInputRef = ref<HTMLInputElement | null>(null)
+// 计算当前聊天对象是否正在输入
+const isCurrentChatTyping = computed(() => {
+  return imStore.getCurrentChatTypingStatus()
+})
+
+// 监听聊天切换，清除输入状态
+watch(
+  () => selectedChat.value?.username,
+  () => {
+    imStore.clearTypingStatus()
+  }
+)
+
+watch(
+  () => isCurrentChatTyping.value,
+  (isTyping) => {
+    if (isTyping) {
+      nextTick(() => {
+        if (scrollbarRef.value) {
+          scrollbarRef.value.scrollTo({
+            left: 0,
+            top: 99999,
+            behavior: 'smooth'
+          })
+        }
+      })
+    }
+  }
+)
 
 // 处理图片选择按钮点击
 const handleSelectImage = () => {
@@ -520,7 +574,11 @@ const handleScroll = throttle(async (e: { target: { scrollTop: number } }) => {
       imStore.msgCurrentPage++
       const userInfo = userStore.userInfo
       if (userInfo?.id && selectedChat.value?.id) {
-        const resolve = await imStore.getMessageHistory(userInfo.id, selectedChat.value.id)
+        const resolve = await imStore.getMessageHistory(
+          userInfo.id,
+          selectedChat.value.id,
+          selectedChat.value.chatType
+        )
         if (!resolve) return
 
         // 保持滚动位置在加载前的最后一条消息处
@@ -1538,6 +1596,68 @@ onUnmounted(() => {
   }
   100% {
     background-position: 100%;
+  }
+}
+
+// 正在输入气泡样式
+.typing-message {
+  opacity: 0;
+  animation: fadeInUp 0.3s ease-out forwards;
+}
+
+.typing-bubble {
+  padding: 14px 16px;
+  border-radius: 8px;
+  max-width: 80px;
+}
+
+.typing-indicator {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.typing-dot {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background-color: #999;
+  animation: typingAnimation 1.4s infinite ease-in-out;
+}
+
+.typing-dot:nth-child(1) {
+  animation-delay: 0s;
+}
+
+.typing-dot:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.typing-dot:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes typingAnimation {
+  0%,
+  60%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.4;
+  }
+  30% {
+    transform: translateY(-5px);
+    opacity: 1;
+  }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 </style>

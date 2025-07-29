@@ -50,7 +50,9 @@ export const useImStore = defineStore(
     const msgCurrentPage = ref(1)
     const msgHistoryEnd = ref(false)
     const originalMessage = ref()
-
+    const typingUsers = ref<Record<string, boolean>>({})
+    const typingTimers = ref<Record<string, NodeJS.Timeout>>({})
+    const chatType = ref()
     const getReconnectDelay = () => {
       if (reconnectCount.value <= 50) return 1000
       if (reconnectCount.value <= 100) return 5000
@@ -325,7 +327,8 @@ export const useImStore = defineStore(
 
           // 将消息添加到群聊的消息列表中
           userList.value[groupUsername].msgList.push(message)
-          userList.value[groupUsername].list.lastMsg = message.content
+          userList.value[groupUsername].list.lastMsg =
+            `${message.sender.nickname}: ${message.content}`
           userList.value[groupUsername].list.lastMsgTime = new Date(
             message.createdAt
           ).toLocaleString()
@@ -346,6 +349,64 @@ export const useImStore = defineStore(
             userList.value[groupUsername].list.unReadCount++
           }
         })
+
+        // 监听对方输入状态
+        socket.value.on(
+          'userTypingStatus',
+          (data: {
+            userId: number
+            username?: string
+            isTyping: boolean
+            chatType?: string
+            timestamp?: number
+          }) => {
+            console.log('收到输入状态:', data)
+
+            // 只有当前聊天对象的输入状态才显示
+            if (chatWithUserName.value) {
+              // 如果没有 chatType，根据当前聊天类型推断
+              const currentChat = userList.value[chatWithUserName.value]?.list
+              if (!currentChat) return
+
+              const chatType = data.chatType || currentChat.chatType || 'friend'
+              let targetKey = ''
+
+              if (chatType === 'friend') {
+                // 私聊：检查是否是当前聊天的用户
+                if (currentChat.id === data.userId) {
+                  targetKey = chatWithUserName.value
+                }
+              } else if (chatType === 'group') {
+                // 群聊：检查是否是当前群聊，使用 username 作为 key
+                if (currentChat.chatType === 'group' && currentChat.id === data.userId) {
+                  targetKey = data.username || `user_${data.userId}`
+                }
+              }
+
+              if (targetKey) {
+                // 只处理 isTyping: true 的情况，忽略 false
+                if (data.isTyping) {
+                  // 清除之前的定时器
+                  if (typingTimers.value[targetKey]) {
+                    clearTimeout(typingTimers.value[targetKey])
+                    delete typingTimers.value[targetKey]
+                  }
+
+                  // 设置输入状态为 true
+                  typingUsers.value[targetKey] = true
+
+                  // 设置 10 秒后自动清除输入状态
+                  typingTimers.value[targetKey] = setTimeout(() => {
+                    typingUsers.value[targetKey] = false
+                    delete typingTimers.value[targetKey]
+                    console.log(`输入状态已自动清除: ${targetKey}`)
+                  }, 10000) // 延长到10秒
+                }
+                // 移除立即清除的逻辑，完全依赖超时机制
+              }
+            }
+          }
+        )
       }
     }
 
@@ -623,8 +684,20 @@ export const useImStore = defineStore(
             if (response.code === 200) {
               if (chatWithUserName.value && userList.value[chatWithUserName.value]) {
                 userList.value[chatWithUserName.value].msgList.push(response.data)
-                userList.value[chatWithUserName.value].list.lastMsg =
-                  '[送达]' + response.data.content
+
+                // 根据消息类型设置不同的lastMsg格式
+                if (type === 'group') {
+                  // 群聊消息：显示发送者名字
+                  const senderName =
+                    response.data.sender?.nickname || response.data.sender?.username || '我'
+                  userList.value[chatWithUserName.value].list.lastMsg =
+                    `${senderName}: ${response.data.content}`
+                } else {
+                  // 私聊消息：显示送达
+                  userList.value[chatWithUserName.value].list.lastMsg =
+                    '[送达]' + response.data.content
+                }
+
                 userList.value[chatWithUserName.value].list.lastMsgTime = new Date(
                   response.data.createdAt
                 ).toLocaleString()
@@ -713,7 +786,10 @@ export const useImStore = defineStore(
         if (res.code === 200) {
           if (!res.data.list || res.data.list.length === 0) {
             if (chatWithUserName.value && userList.value[chatWithUserName.value]) {
-              userList.value[chatWithUserName.value].msgList = []
+              // 只有在第一页且没有消息时才清空列表
+              if (msgCurrentPage.value === 1) {
+                userList.value[chatWithUserName.value].msgList = []
+              }
               userList.value[chatWithUserName.value].list.unReadCount = 0
               msgHistoryEnd.value = true
               return true
@@ -722,33 +798,31 @@ export const useImStore = defineStore(
           }
 
           if (chatWithUserName.value && userList.value[chatWithUserName.value]) {
-            // 如果是第一页，清空现有消息列表
-            if (msgCurrentPage.value === 1) {
+            // 如果是第一页且当前消息列表为空，直接设置
+            if (
+              msgCurrentPage.value === 1 &&
+              userList.value[chatWithUserName.value].msgList.length === 0
+            ) {
               userList.value[chatWithUserName.value].msgList = [...res.data.list]
             } else {
-              // 不是第一页才追加到现有列表前面
+              // 否则追加到现有列表前面，避免重复
+              const existingIds = new Set(
+                userList.value[chatWithUserName.value].msgList.map((msg) => msg.id)
+              )
+              const newMessages = res.data.list.filter((msg: any) => !existingIds.has(msg.id))
               userList.value[chatWithUserName.value].msgList = [
-                ...res.data.list,
+                ...newMessages,
                 ...userList.value[chatWithUserName.value].msgList
               ]
             }
-            userList.value[chatWithUserName.value].list.unReadCount = 0
+            console.log(userList.value[chatWithUserName.value].list.unReadCount, 'unReadCount')
+            // userList.value[chatWithUserName.value].list.unReadCount = 0
           }
           return true
-        } else {
-          $msg({
-            type: 'error',
-            msg: res.msg || '获取消息历史记录失败'
-          })
-          return []
         }
       } catch (error) {
         console.error('获取消息历史记录失败:', error)
-        $msg({
-          type: 'error',
-          msg: '获取消息历史记录失败'
-        })
-        return []
+        return false
       }
     }
     // 标记单条消息为已读
@@ -795,6 +869,8 @@ export const useImStore = defineStore(
                 }
                 return msg
               })
+
+              userList.value[chatWithUserName.value].list.unReadCount = 0
             }
           } else {
             $msg({
@@ -849,6 +925,76 @@ export const useImStore = defineStore(
       })
     }
 
+    // 获取当前聊天对象的输入状态
+    const getCurrentChatTypingStatus = () => {
+      if (!chatWithUserName.value) return false
+      return typingUsers.value[chatWithUserName.value] || false
+    }
+
+    // 清除输入状态
+    const clearTypingStatus = () => {
+      // 清除所有定时器
+      Object.values(typingTimers.value).forEach((timer) => {
+        clearTimeout(timer)
+      })
+      typingTimers.value = {}
+      typingUsers.value = {}
+    }
+
+    // 标记群聊单条消息为已读
+    const groupOneMsgRead = (messageId: number, groupId: number) => {
+      // 先检查本地消息状态
+      const message = userList.value[chatWithUserName.value!].msgList.find(
+        (item) => item.id === messageId
+      )
+      // 如果消息不存在或已经是已读状态，直接返回
+      if (!message || message.status === '1') {
+        return
+      }
+
+      if (socket.value && isConnected.value) {
+        socket.value.emit('groupOneMsgRead', { messageId, groupId }, (response: any) => {
+          if (response.code === 200) {
+            // 更新本地消息状态
+            if (chatWithUserName.value && userList.value[chatWithUserName.value]) {
+              userList.value[chatWithUserName.value].msgList = userList.value[
+                chatWithUserName.value
+              ].msgList.map((msg) => (msg.id === messageId ? { ...msg, status: '1' } : msg))
+            }
+          } else {
+            $msg({
+              type: 'error',
+              msg: response.msg || '标记已读失败'
+            })
+          }
+        })
+      }
+    }
+
+    // 标记群聊所有消息为已读
+    const groupAllMsgRead = (groupId: number) => {
+      if (socket.value && isConnected.value) {
+        socket.value.emit('groupMsgRead', { groupId }, (response: any) => {
+          if (response.code === 200) {
+            if (chatWithUserName.value && userList.value[chatWithUserName.value]) {
+              // 将该群聊的所有消息标记为已读
+              userList.value[chatWithUserName.value].msgList = userList.value[
+                chatWithUserName.value
+              ].msgList.map((msg) => ({ ...msg, status: '1' }))
+
+              // 清除未读计数
+              userList.value[chatWithUserName.value].list.unReadCount = 0
+            }
+          } else {
+            $msg({
+              type: 'error',
+              msg: response.msg || '标记已读失败'
+            })
+          }
+        })
+      }
+    }
+
     // 清空所有通知
     const clearAllNotices = () => {
       if (!notices.value.length) return
@@ -890,7 +1036,13 @@ export const useImStore = defineStore(
       recallMessage,
       originalMessage,
       markAllNoticesAsRead,
-      clearAllNotices
+      clearAllNotices,
+      typingUsers,
+      getCurrentChatTypingStatus,
+      clearTypingStatus,
+      groupOneMsgRead,
+      groupAllMsgRead,
+      chatType
     }
   },
   {

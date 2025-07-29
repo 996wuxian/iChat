@@ -49,7 +49,7 @@ function createMainWindow(): void {
 
   mainWindow.on('ready-to-show', () => {
     mainWindow?.show()
-    // mainWindow?.webContents.openDevTools()
+    mainWindow?.webContents.openDevTools()
   })
 
   // 初始加载登录页面
@@ -295,6 +295,14 @@ function createMainWindow(): void {
     } catch (error) {
       console.error('清除自动登录失败:', error)
       return { success: false, error: error.message }
+    }
+  })
+
+  // 添加群聊面板展开
+  ipcMain.on('expand-group-panel', () => {
+    if (mainWindow) {
+      const bounds = mainWindow.getBounds()
+      mainWindow.setSize(bounds.width + 300, bounds.height) // 宽度增大300，高度不变
     }
   })
 }

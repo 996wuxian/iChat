@@ -88,7 +88,7 @@
     <!-- 好友列表 -->
     <div
       v-if="listType === 'friends' && friendList.length > 0"
-      class="flex flex-col b-t-1px b-#EEEEEE b-t-solid p-10px gap-10px"
+      class="flex flex-col b-t-1px b-#EEEEEE b-t-solid p-10px gap-8px"
     >
       <div class="text-gray-500 text-12px flex items-center gap-10px justify-center mb-10px">
         <span class="w-50px h-1px bg-#eee"></span>

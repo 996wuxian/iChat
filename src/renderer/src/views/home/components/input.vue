@@ -14,17 +14,62 @@
 import { $msg } from '@renderer/config/interaction.config'
 import { useHomeStore } from '../store/index'
 import { uploadFile } from '@renderer/service/api/upload'
-const { messageInputRef, messageContent, handleSendMessage } = useHomeStore()
+const { messageInputRef, messageContent, handleSendMessage, selectedChat, imStore } = useHomeStore()
+
+// 输入状态管理
+let typingTimer: NodeJS.Timeout | null = null
+let isTyping = ref(false)
 
 const handleInput = () => {
   if (messageInputRef.value) {
     messageContent.value = messageInputRef.value.innerHTML
+
+    // 处理输入状态
+    if (selectedChat.value?.id && imStore.socket && imStore.isConnected) {
+      if (!isTyping.value) {
+        // 开始输入
+        imStore.socket.emit('userTyping', {
+          targetUserId: selectedChat.value.id,
+          chatType: selectedChat.value.chatType,
+          isTyping: true
+        })
+        isTyping.value = true
+      }
+
+      // 重置定时器
+      if (typingTimer) {
+        clearTimeout(typingTimer)
+      }
+      typingTimer = setTimeout(() => {
+        // 停止输入
+        if (imStore.socket && imStore.isConnected) {
+          imStore.socket.emit('userTyping', {
+            targetUserId: selectedChat.value?.id,
+            chatType: selectedChat.value?.chatType,
+            isTyping: false
+          })
+        }
+        isTyping.value = false
+      }, 500)
+    }
   }
 }
 
 // 处理回车键发送消息
 const handleEnterKey = (e: KeyboardEvent) => {
   if (!e.shiftKey) {
+    // 发送消息时立即清除输入状态
+    if (isTyping.value && imStore.socket && imStore.isConnected) {
+      imStore.socket.emit('userTyping', {
+        targetUserId: selectedChat.value?.id,
+        chatType: selectedChat.value?.chatType,
+        isTyping: false
+      })
+      isTyping.value = false
+      if (typingTimer) {
+        clearTimeout(typingTimer)
+      }
+    }
     handleSendMessage()
   }
 }
@@ -158,6 +203,20 @@ const handlePaste = async (e: ClipboardEvent) => {
     messageContent.value = messageInputRef.value.innerHTML
   }
 }
+
+// 组件卸载时清理定时器
+onUnmounted(() => {
+  if (typingTimer) {
+    clearTimeout(typingTimer)
+  }
+  if (isTyping.value && imStore.socket && imStore.isConnected) {
+    imStore.socket.emit('userTyping', {
+      targetUserId: selectedChat.value?.id,
+      chatType: selectedChat.value?.chatType,
+      isTyping: false
+    })
+  }
+})
 </script>
 
 <style lang="scss" scoped>

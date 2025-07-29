@@ -448,10 +448,24 @@ const handleSelect = async (key: string) => {
           // 处理拉黑逻辑
           const res = await BlacklistFriend(currentMessage.value!.id)
           if (res.code === 200) {
+            // 从userList中移除该用户
+            if (currentMessage.value?.username && userList.value[currentMessage.value.username]) {
+              delete userList.value[currentMessage.value.username]
+            }
+
+            // 如果当前选中的是被拉黑的用户，清空选中状态
+            if (selectedChat.value?.id === currentMessage.value!.id) {
+              selectedChat.value = null
+              messages.value = []
+            }
+
             $msg({
               type: 'success',
               msg: '已拉黑该用户'
             })
+
+            // 清空当前消息引用
+            currentMessage.value = null
           }
         }
       })

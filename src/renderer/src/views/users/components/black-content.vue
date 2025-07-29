@@ -19,6 +19,7 @@
           <div
             i-solar-trash-bin-minimalistic-2-bold-duotone
             class="text-20px cursor-pointer hover:c-red transition-all"
+            @click="removeFromBlacklist(item)"
           ></div>
         </div>
       </n-card>
@@ -30,15 +31,30 @@
 import { useUsersStore } from '../store'
 import { NEmpty, NCard, NAvatar, useMessage } from 'naive-ui'
 import defaultAvatar from '@renderer/assets/imgs/default-avatar.png'
+import { UnblacklistFriend } from '@renderer/service/api/user'
 
-const { blackList } = useUsersStore()
+const { blackList, getFriendList } = useUsersStore()
 const message = useMessage()
 
 // 移除黑名单
-const removeFromBlacklist = (item: any) => {
-  // 这里添加移除黑名单的逻辑
-  // 例如调用API或者更新store
-  message.success(`已将 ${item.friend.nickname || item.friend.username} 从黑名单中移除`)
+const removeFromBlacklist = async (item: any) => {
+  try {
+    const res = await UnblacklistFriend(item.friend.id)
+    if (res.code === 200) {
+      // 从本地黑名单列表中移除
+      const index = blackList.value.findIndex((blackItem) => blackItem.id === item.id)
+      if (index !== -1) {
+        blackList.value.splice(index, 1)
+      }
+      message.success(`已将 ${item.friend.nickname || item.friend.username} 从黑名单中移除`)
+      getFriendList()
+    } else {
+      message.error(res.msg || '移除失败')
+    }
+  } catch (error) {
+    console.error('移除黑名单失败:', error)
+    message.error('移除失败，请稍后重试')
+  }
 }
 </script>
 
