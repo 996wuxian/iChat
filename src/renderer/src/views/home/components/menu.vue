@@ -6,6 +6,7 @@
     :y="dropdownY"
     placement="bottom-start"
     style="border-radius: 10px"
+    to="body"
     @clickoutside="showDropdown = false"
     @select="
       (key) => {
@@ -47,39 +48,56 @@ const {
 const dialog = useDialog()
 
 // 获取列表菜单选项
-const getListOptions = (is_top: string, is_disturb: string) => [
-  {
-    label: is_top === '1' ? '取消置顶' : '置顶',
-    key: 'top',
-    icon: () =>
-      h('i', { class: is_top === '1' ? 'i-solar-pin-line-duotone' : 'i-solar-pin-bold-duotone' })
-  },
-  {
-    label: '复制账号',
-    key: 'copyAccount',
-    icon: () => h('i', { class: 'i-solar-copy-line-duotone' })
-  },
-  {
-    label: is_disturb === '1' ? '取消免打扰' : '设置免打扰',
-    key: 'mute',
-    icon: () =>
-      h('i', {
-        class: is_disturb === '1' ? 'i-solar-bell-bing-outline' : 'i-solar-bell-off-line-duotone'
-      })
-  },
-  {
-    label: '从消息列表中移除',
-    key: 'removeFromList',
-    icon: () => h('i', { class: 'i-solar-trash-bin-trash-line-duotone' })
-  },
-  { type: 'divider', key: 'd1' },
-  {
-    label: '拉黑该用户',
-    key: 'block',
-    type: 'error',
-    icon: () => h('i', { class: 'i-solar-shield-cross-line-duotone' })
+const getListOptions = (is_top: string, is_disturb: string, chatType?: string) => {
+  const baseOptions = [
+    {
+      label: is_top === '1' ? '取消置顶' : '置顶',
+      key: 'top',
+      icon: () =>
+        h('i', { class: is_top === '1' ? 'i-solar-pin-line-duotone' : 'i-solar-pin-bold-duotone' })
+    },
+    {
+      label: '复制账号',
+      key: 'copyAccount',
+      icon: () => h('i', { class: 'i-solar-copy-line-duotone' })
+    },
+    {
+      label: is_disturb === '1' ? '取消免打扰' : '设置免打扰',
+      key: 'mute',
+      icon: () =>
+        h('i', {
+          class: is_disturb === '1' ? 'i-solar-bell-bing-outline' : 'i-solar-bell-off-line-duotone'
+        })
+    },
+    {
+      label: '从消息列表中移除',
+      key: 'removeFromList',
+      icon: () => h('i', { class: 'i-solar-trash-bin-trash-line-duotone' })
+    }
+  ]
+
+  // 只有私聊才显示拉黑选项
+  if (chatType !== 'group') {
+    baseOptions.push(
+      { type: 'divider', key: 'd1' },
+      {
+        label: '拉黑该用户',
+        key: 'block',
+        type: 'error',
+        icon: () => h('i', { class: 'i-solar-shield-cross-line-duotone' })
+      }
+    )
+  } else {
+    baseOptions.push({
+      label: '退出群聊',
+      key: 'exitGroup',
+      type: 'error',
+      icon: () => h('i', { class: 'i-solar-shield-cross-line-duotone' })
+    })
   }
-]
+
+  return baseOptions
+}
 // 基础菜单选项
 const getBaseOptions = () => [
   {
@@ -137,6 +155,37 @@ const getAudioOptions = () => [
   }
 ]
 
+// 获取群成员右键菜单选项
+const getMemberOptions = () => [
+  {
+    label: '发送消息',
+    key: 'sendMessage',
+    icon: () => h('i', { class: 'i-solar-chat-round-line-duotone' })
+  },
+  {
+    label: '@TA',
+    key: 'mention',
+    icon: () => h('i', { class: 'i-solar-mention-circle-line-duotone' })
+  },
+  {
+    label: '查看资料',
+    key: 'viewProfile',
+    icon: () => h('i', { class: 'i-solar-user-id-line-duotone' })
+  },
+  {
+    label: '修改群昵称',
+    key: 'editGroupNickname',
+    icon: () => h('i', { class: 'i-solar-pen-new-square-line-duotone' })
+  },
+  { type: 'divider', key: 'd1' },
+  {
+    label: '屏蔽此人发言',
+    key: 'muteUser',
+    type: 'error',
+    icon: () => h('i', { class: 'i-solar-forbidden-circle-line-duotone' })
+  }
+]
+
 // 检查是否可以撤回消息
 const canRecallMessage = (message: Message) => {
   if (!isCurrentUser(message)) return false
@@ -165,11 +214,17 @@ const getImageOptions = () => [
 
 // 菜单选项计算属性
 const dropdownOptions = computed(() => {
+  console.log('🚀 ~ currentMessage.value.type:', currentMessage.value)
+
   if (!currentMessage.value) return []
 
   // 处理列表右键菜单
   if (currentMessage.value.type === 'list') {
-    return getListOptions(currentMessage.value.is_top, currentMessage.value.is_disturb)
+    return getListOptions(
+      currentMessage.value.is_top,
+      currentMessage.value.is_disturb,
+      currentMessage.value.chatType
+    )
   }
 
   // 处理语音消息
@@ -183,6 +238,11 @@ const dropdownOptions = computed(() => {
       })
     }
     return options
+  }
+
+  // 处理群成员右键菜单
+  if (currentMessage.value.type === 'member') {
+    return getMemberOptions()
   }
 
   // 处理其他类型消息
@@ -469,6 +529,71 @@ const handleSelect = async (key: string) => {
           }
         }
       })
+      break
+    case 'sendMessage':
+      // 实现发送消息逻辑
+      if (currentMessage.value.type === 'member') {
+        // 切换到与该成员的私聊
+        const member = currentMessage.value
+        // 这里需要根据实际的聊天切换逻辑来实现
+        $msg({
+          type: 'info',
+          msg: `准备与 ${member.nickname} 发送消息`
+        })
+      }
+      break
+
+    case 'mention':
+      // 实现@功能
+      if (currentMessage.value.type === 'member') {
+        const member = currentMessage.value
+        // 在输入框中添加@用户
+        $msg({
+          type: 'info',
+          msg: `@${member.nickname}`
+        })
+      }
+      break
+
+    case 'viewProfile':
+      // 实现查看资料功能
+      if (currentMessage.value.type === 'member') {
+        const member = currentMessage.value
+        $msg({
+          type: 'info',
+          msg: `查看 ${member.nickname} 的资料`
+        })
+      }
+      break
+
+    case 'editGroupNickname':
+      // 实现修改群昵称功能
+      if (currentMessage.value.type === 'member') {
+        const member = currentMessage.value
+        $msg({
+          type: 'info',
+          msg: `修改 ${member.nickname} 的群昵称`
+        })
+      }
+      break
+
+    case 'muteUser':
+      // 实现屏蔽发言功能
+      if (currentMessage.value.type === 'member') {
+        const member = currentMessage.value
+        dialog.warning({
+          title: '屏蔽确认',
+          content: `确定要屏蔽 ${member.nickname} 的发言吗？`,
+          positiveText: '确定',
+          negativeText: '取消',
+          onPositiveClick: () => {
+            $msg({
+              type: 'success',
+              msg: `已屏蔽 ${member.nickname} 的发言`
+            })
+          }
+        })
+      }
       break
   }
 

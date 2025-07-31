@@ -253,6 +253,12 @@
           </div>
         </div>
       </n-scrollbar>
+
+      <!-- 最新消息按钮 -->
+      <div v-if="showScrollToBottomBtn" class="scroll-to-bottom-btn" @click="scrollToBottom">
+        <span>最新消息</span>
+        <i i-solar-double-alt-arrow-down-linear class="ml-5px text-16px"></i>
+      </div>
     </div>
 
     <!-- 拖拽条 -->
@@ -564,53 +570,73 @@ const scrollToMessage = (messageId: number) => {
 
 // 添加一个加载状态标记
 const isLoading = ref(false)
-
+// 添加显示滚动到底部按钮的状态
+const showScrollToBottomBtn = ref(false)
 // 添加滚动监听处理
-const handleScroll = throttle(async (e: { target: { scrollTop: number } }) => {
-  if (!scrollbarRef.value || isLoading.value) return
+const handleScroll = throttle(
+  async (e: { target: { scrollTop: number; scrollHeight: number; clientHeight: number } }) => {
+    if (!scrollbarRef.value || isLoading.value) return
 
-  // 从事件对象中获取 scrollTop
-  const scrollTop = e.target.scrollTop
+    // 从事件对象中获取 scrollTop
+    const { scrollTop, scrollHeight, clientHeight } = e.target
+    const isAtBottom = scrollTop + clientHeight >= scrollHeight - 50
+    showScrollToBottomBtn.value = (!isAtBottom &&
+      messages?.value &&
+      messages.value.length > 0) as boolean
 
-  if (scrollTop === 0) {
-    // 设置加载状态
-    isLoading.value = true
+    if (scrollTop === 0) {
+      // 设置加载状态
+      isLoading.value = true
 
-    try {
-      // 在加载新消息前，先记录当前最后一条消息的位置
-      const lastMessageBeforeLoad = messages?.value[0]
+      try {
+        // 在加载新消息前，先记录当前最后一条消息的位置
+        const lastMessageBeforeLoad = messages?.value[0]
 
-      imStore.msgCurrentPage++
-      const userInfo = userStore.userInfo
-      if (userInfo?.id && selectedChat.value?.id) {
-        const resolve = await imStore.getMessageHistory(
-          userInfo.id,
-          selectedChat.value.id,
-          selectedChat.value.chatType
-        )
-        if (!resolve) return
+        imStore.msgCurrentPage++
+        const userInfo = userStore.userInfo
+        if (userInfo?.id && selectedChat.value?.id) {
+          const resolve = await imStore.getMessageHistory(
+            userInfo.id,
+            selectedChat.value.id,
+            selectedChat.value.chatType
+          )
+          if (!resolve) return
 
-        // 保持滚动位置在加载前的最后一条消息处
-        nextTick(() => {
-          if (scrollbarRef.value && messages.value && lastMessageBeforeLoad) {
-            const lastMessage = document.querySelector(
-              `[data-message-id="${lastMessageBeforeLoad.id}"]`
-            )
-            if (lastMessage) {
-              scrollbarRef.value.scrollTo({
-                top: lastMessage.offsetTop,
-                behavior: 'instant'
-              })
+          // 保持滚动位置在加载前的最后一条消息处
+          nextTick(() => {
+            if (scrollbarRef.value && messages.value && lastMessageBeforeLoad) {
+              const lastMessage = document.querySelector(
+                `[data-message-id="${lastMessageBeforeLoad.id}"]`
+              )
+              if (lastMessage) {
+                scrollbarRef.value.scrollTo({
+                  top: lastMessage.offsetTop,
+                  behavior: 'instant'
+                })
+              }
             }
-          }
-        })
+          })
+        }
+      } finally {
+        // 重置加载状态
+        isLoading.value = false
       }
-    } finally {
-      // 重置加载状态
-      isLoading.value = false
     }
+  },
+  1000
+)
+
+// 滚动到底部的方法
+const scrollToBottom = () => {
+  if (scrollbarRef.value) {
+    scrollbarRef.value.scrollTo({
+      left: 0,
+      top: 99999,
+      behavior: 'smooth'
+    })
+    showScrollToBottomBtn.value = false
   }
-}, 1000)
+}
 
 // 监听表情弹窗的显示状态
 watch(showEmojiPopup, (newVal) => {
@@ -632,6 +658,7 @@ watch(
           top: 99999, // 使用一个足够大的值来滚动到底部
           behavior: 'instant'
         })
+        showScrollToBottomBtn.value = false
       }
     })
   },
@@ -1684,5 +1711,32 @@ onUnmounted(() => {
   background-color: rgba(0, 0, 0, 0.05);
   padding: 4px 12px;
   border-radius: 100px;
+}
+
+.chat-messages {
+  position: relative;
+}
+
+.scroll-to-bottom-btn {
+  position: absolute;
+  bottom: 20px;
+  right: 30px;
+  background: #333;
+  color: #fff;
+  padding: 6px 10px;
+  border-radius: 10px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  font-size: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  transition: all 0.3s ease;
+  z-index: 10;
+}
+
+.scroll-to-bottom-btn:hover {
+  background: #333;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 </style>

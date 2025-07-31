@@ -73,6 +73,8 @@ onUnmounted(() => {
 const handleMenuClick = (path: string) => {
   activeMenu.value = path
   router.push(path)
+  groupStore.currentGroupId = ''
+  window.api.collapseGroupPanel()
 }
 
 const showSettingMenu = ref(false)

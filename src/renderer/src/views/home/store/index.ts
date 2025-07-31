@@ -4,9 +4,9 @@ import { useImStore } from '@renderer/stores/modules/im'
 import useUserStore from '@renderer/stores/modules/user'
 import { Local } from '@renderer/utils/storage'
 import { useGroupStore } from '@renderer/stores/modules/group'
-const imStore = useImStore()
-const userStore = useUserStore()
-const groupStore = useGroupStore()
+let imStore: any
+let userStore: any
+let groupStore: any
 // 好友信息接口
 export interface Message {
   id: number
@@ -293,6 +293,10 @@ const handleContextMenu = (e: MouseEvent, msg: any, type: string) => {
 }
 
 export const useHomeStore = () => {
+  imStore = useImStore()
+  userStore = useUserStore()
+  groupStore = useGroupStore()
+
   return {
     currentMessage,
 

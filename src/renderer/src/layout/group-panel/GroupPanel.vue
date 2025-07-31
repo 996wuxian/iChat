@@ -38,6 +38,7 @@
           class="member-item"
           :class="{ selected: selectedMembers.includes(member.userId) }"
           @click="toggleMemberSelection(member.userId)"
+          @contextmenu.prevent="handleMemberContextMenu($event, member)"
         >
           <div class="member-avatar">
             <img :src="member.avatar || defaultAvatar" :alt="member.nickname" />
@@ -111,7 +112,7 @@
           <span class="modal-title">添加群成员</span>
           <i
             i-solar-close-circle-outline
-            class="close-icon"
+            class="close-icon cursor-pointer"
             @click="showAddMemberDialog = false"
           ></i>
         </div>
@@ -268,7 +269,7 @@
           <span class="modal-title">群公告</span>
           <i
             i-solar-close-circle-outline
-            class="text-16px"
+            class="text-16px cursor-pointer"
             @click="showAnnouncementDialog = false"
           ></i>
         </div>
@@ -326,10 +327,10 @@
           </div>
           <!-- 发布公告按钮 -->
           <div v-if="canManageAnnouncements" class="publish-section flex-center">
-            <button class="publish-btn" @click="showPublishDialog = true">
-              <i i-solar-add-circle-outline class="mr-5px"></i>
+            <div class="publish-btn" @click="showPublishDialog = true">
+              <i i-solar-add-circle-outline class="mr-5px text-16px"></i>
               发布公告
-            </button>
+            </div>
           </div>
         </div>
       </div>
@@ -350,7 +351,7 @@
           <span class="modal-title">{{ editingAnnouncement ? '编辑公告' : '发布公告' }}</span>
           <i
             i-solar-close-circle-outline
-            class="close-icon text-16px"
+            class="close-icon text-16px cursor-pointer"
             @click="closePublishDialog"
           ></i>
         </div>
@@ -406,7 +407,7 @@
           <span class="modal-title">公告详情</span>
           <i
             i-solar-close-circle-outline
-            class="close-icon text-16px"
+            class="close-icon text-16px cursor-pointer"
             @click="showDetailDialog = false"
           ></i>
         </div>
@@ -427,6 +428,8 @@
         </div>
       </div>
     </n-modal>
+
+    <Menu />
   </div>
 </template>
 
@@ -435,6 +438,7 @@ import { ref, computed } from 'vue'
 import { useGroupStore } from '@renderer/stores/modules/group'
 import defaultAvatar from '@renderer/assets/imgs/default-avatar.png'
 import { $msg } from '@renderer/config/interaction.config'
+import Menu from '@renderer/views/home/components/menu.vue'
 import {
   DeleteGroup,
   GetChatList,
@@ -446,11 +450,14 @@ import {
   DeleteGroupAnnouncement,
   UpdateGroupAnnouncement
 } from '@renderer/service/api/user'
+
+import { useHomeStore } from '@renderer/views/home/store/index'
+
 import { useDialog } from 'naive-ui'
 const dialog = useDialog()
 
 const groupStore = useGroupStore()
-
+const homeStore = useHomeStore()
 // 选中的成员列表（用于批量操作）
 const selectedMembers = ref<number[]>([])
 
@@ -491,6 +498,20 @@ const canManageAnnouncements = computed(() => {
 const latestAnnouncement = computed(() => {
   return announcements.value[0] || null
 })
+
+// 处理成员右键菜单
+const handleMemberContextMenu = (e: MouseEvent, member: any) => {
+  e.preventDefault()
+
+  // 正确的写法：通过 .value 操作响应式状态
+  homeStore.showDropdown.value = true
+  homeStore.dropdownX.value = e.clientX
+  homeStore.dropdownY.value = e.clientY
+  homeStore.currentMessage.value = {
+    ...member,
+    type: 'member'
+  }
+}
 
 // 加载群公告列表
 const loadAnnouncements = async (page: number = 1) => {
