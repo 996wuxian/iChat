@@ -3,9 +3,10 @@ import { useDraggableWidth } from '@renderer/hooks/useDraggableWidth'
 import { useImStore } from '@renderer/stores/modules/im'
 import useUserStore from '@renderer/stores/modules/user'
 import { Local } from '@renderer/utils/storage'
+import { useGroupStore } from '@renderer/stores/modules/group'
 const imStore = useImStore()
 const userStore = useUserStore()
-
+const groupStore = useGroupStore()
 // 好友信息接口
 export interface Message {
   id: number
@@ -89,8 +90,9 @@ const selectedChat = ref<ChatItem | null>()
 const messages = ref<Message[]>()
 
 const handleSelectChat = async (user: any) => {
+  if (selectedChat.value && selectedChat.value.id === user.id) return
+
   selectedChat.value = user
-  console.log('🚀 ~ handleSelectChat ~ selectedChat.value:', selectedChat.value)
   imStore.receiveId = user.id
   imStore.chatWithUserName = user.username
   imStore.chatType = user.chatType
@@ -118,14 +120,19 @@ const handleSelectChat = async (user: any) => {
       // 根据聊天类型处理已读逻辑
       if (user.chatType === 'group') {
         window.api.expandGroupPanel()
+        groupStore.currentGroupId = user.id
+
+        await groupStore.fetchGroupDetail(user.id)
 
         // 群聊：检查是否有未读消息，如果有则标记群聊为已读
         const hasUnreadMessages = userList.value[user.username].list.unReadCount > 0
-        console.log('🚀 ~ handleSelectChat ~ hasUnreadMessages:', hasUnreadMessages)
         if (hasUnreadMessages) {
           imStore.groupAllMsgRead(user.id)
         }
       } else {
+        window.api.collapseGroupPanel()
+        groupStore.currentGroupId = ''
+
         // 私聊：原有逻辑
         const unReadCountMessages = messages.value.filter(
           (msg) => msg.status === '0' && msg.senderId === user.id
@@ -322,6 +329,7 @@ export const useHomeStore = () => {
     currentQuote,
     formatDuration,
     isPlaying,
-    toggleAudioPlay
+    toggleAudioPlay,
+    groupStore
   }
 }

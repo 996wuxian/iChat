@@ -407,6 +407,68 @@ export const useImStore = defineStore(
             }
           }
         )
+
+        // 监听新成员加入群聊事件
+        socket.value.on(
+          'newMemberAdded',
+          async (data: {
+            groupId: number
+            newMembers: Array<{ id: number; username: string; nickname: string }>
+            operatorName: string
+            time: string
+          }) => {
+            console.log('收到新成员加入事件:', data)
+
+            // 找到对应的群聊
+            let groupUsername = null
+            for (const [username, chatData] of Object.entries(userList.value)) {
+              if (chatData.list.chatType === 'group' && chatData.list.id === data.groupId) {
+                groupUsername = username
+                break
+              }
+            }
+
+            // 如果找不到对应的群聊，重新获取聊天列表
+            if (!groupUsername) {
+              console.log(`群聊 ${data.groupId} 不在聊天列表中，重新获取列表`)
+              await getChatList()
+
+              // 重新查找
+              for (const [username, chatData] of Object.entries(userList.value)) {
+                if (chatData.list.chatType === 'group' && chatData.list.id === data.groupId) {
+                  groupUsername = username
+                  break
+                }
+              }
+            }
+
+            // 如果仍然找不到，说明可能是新群聊或数据异常
+            if (!groupUsername) {
+              console.warn(`无法找到群聊 ${data.groupId} 的对应记录`)
+              return
+            }
+
+            // 只有在当前打开的群聊中才添加 tip 消息
+            if (chatWithUserName.value === groupUsername) {
+              // 构造新成员名称列表
+              const memberNames = data.newMembers
+                .map((member) => member.nickname || member.username)
+                .join('、')
+
+              // 创建 tip 消息
+              const tipMessage = {
+                id: Date.now(), // 使用时间戳作为临时 ID
+                type: 'tip',
+                content: `${memberNames} 加入了群聊`,
+                createdAt: data.time,
+                sender: null // tip 消息没有发送者
+              }
+
+              // 将 tip 消息添加到群聊的消息列表中
+              userList.value[groupUsername].msgList.push(tipMessage)
+            }
+          }
+        )
       }
     }
 

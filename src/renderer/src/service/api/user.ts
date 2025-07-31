@@ -256,3 +256,113 @@ export function UpdateGroupList(data: any, showLoading: boolean = false, showMsg
     showMsg
   })
 }
+
+// 移除群聊成员
+export function RemoveGroupMember(
+  groupId: number,
+  memberId: number,
+  showLoading: boolean = true,
+  showMsg: boolean = false
+) {
+  return request<any>({
+    method: 'delete',
+    url: `${module}group/${groupId}/member/${memberId}`,
+    showLoading,
+    showMsg
+  })
+}
+
+// 删除群聊（解散群聊）
+export function DeleteGroup(
+  groupId: number,
+  showLoading: boolean = true,
+  showMsg: boolean = false
+) {
+  return request<any>({
+    method: 'delete',
+    url: `${module}group/${groupId}`,
+    showLoading,
+    showMsg
+  })
+}
+
+// 添加群成员
+export function AddGroupMember(
+  groupId: number,
+  userIds: number[],
+  showLoading: boolean = true,
+  showMsg: boolean = false
+) {
+  return request<any>({
+    method: 'post',
+    url: `${module}group/${groupId}/members`,
+    data: { userIds },
+    showLoading,
+    showMsg
+  })
+}
+
+// 发布群公告
+export function PublishGroupAnnouncement(
+  groupId: number,
+  title: string,
+  content: string,
+  showLoading: boolean = true,
+  showMsg: boolean = false
+) {
+  return request<any>({
+    method: 'post',
+    url: `${module}group/${groupId}/announcements`,
+    data: { title, content },
+    showLoading,
+    showMsg
+  })
+}
+
+// 获取群公告列表
+export function GetGroupAnnouncements(
+  groupId: number,
+  page: number = 1,
+  limit: number = 10,
+  showLoading: boolean = false,
+  showMsg: boolean = false
+) {
+  return request<any>({
+    method: 'get',
+    url: `${module}group/${groupId}/announcements`,
+    params: { page, limit },
+    showLoading,
+    showMsg
+  })
+}
+
+// 删除群公告
+export function DeleteGroupAnnouncement(
+  announcementId: number,
+  showLoading: boolean = true,
+  showMsg: boolean = false
+) {
+  return request<any>({
+    method: 'delete',
+    url: `${module}announcements/${announcementId}`,
+    showLoading,
+    showMsg
+  })
+}
+
+// 修改群公告
+export function UpdateGroupAnnouncement(
+  announcementId: number,
+  title: string,
+  content: string,
+  showLoading: boolean = true,
+  showMsg: boolean = false
+) {
+  return request<any>({
+    method: 'put',
+    url: `${module}announcements/${announcementId}`,
+    data: { title, content },
+    showLoading,
+    showMsg
+  })
+}

@@ -305,6 +305,13 @@ function createMainWindow(): void {
       mainWindow.setSize(bounds.width + 300, bounds.height) // 宽度增大300，高度不变
     }
   })
+
+  ipcMain.on('collapse-group-panel', () => {
+    if (mainWindow) {
+      const bounds = mainWindow.getBounds()
+      mainWindow.setSize(900, bounds.height) // 恢复原始宽度，高度不变
+    }
+  })
 }
 
 export function initWindows(): void {

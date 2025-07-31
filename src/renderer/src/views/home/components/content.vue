@@ -4,6 +4,9 @@
     <div class="chat-header">
       <div class="chat-title">
         {{ selectedChat.nickname || selectedChat.username }}
+        <span v-if="imStore.chatType === 'group' && groupStore?.groupInfo.currentMemberCount"
+          >({{ groupStore.groupInfo.currentMemberCount }})</span
+        >
         <span v-if="isCurrentChatTyping" class="text-11px ml-10px c-gray typing-dots">
           正在输入中
           <span class="typing-animation"></span>
@@ -41,6 +44,11 @@
               >
                 重新编辑
               </span>
+            </div>
+          </template>
+          <template v-else-if="msg.type === 'tip'">
+            <div class="tip-message">
+              <span class="tip-text">{{ msg.content }}</span>
             </div>
           </template>
           <template v-else>
@@ -405,7 +413,8 @@ const {
   formatDuration,
   isPlaying,
   toggleAudioPlay,
-  handleContextMenu
+  handleContextMenu,
+  groupStore
 } = useHomeStore()
 
 const currentUserAvatar = computed(() => {
@@ -1659,5 +1668,21 @@ onUnmounted(() => {
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+.tip-message {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 8px 0;
+  width: 100%;
+}
+
+.tip-text {
+  font-size: 12px;
+  color: #666;
+  background-color: rgba(0, 0, 0, 0.05);
+  padding: 4px 12px;
+  border-radius: 100px;
 }
 </style>

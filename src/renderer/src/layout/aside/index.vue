@@ -9,9 +9,11 @@ import useUserStore from '@renderer/stores/modules/user'
 import defaultAvatar from '@renderer/assets/imgs/default-avatar.png'
 import EditProfileDialog from './components/EditProfileDialog.vue'
 import { useLayoutStore } from '../store'
+import { useGroupStore } from '@renderer/stores/modules/group'
 const { isLocked, showLockDialog, lockPassword } = useLayoutStore()
 
 const userStore = useUserStore()
+const groupStore = useGroupStore()
 
 const imStore = useImStore()
 const router = useRouter()
@@ -120,6 +122,8 @@ const handleLogout = () => {
   imStore.userList = {}
   imStore.receiveId = ''
   imStore.chatWithUserName = ''
+  imStore.chatType = ''
+  groupStore.clearGroupData()
   $msg({
     type: 'success',
     msg: '退出成功'

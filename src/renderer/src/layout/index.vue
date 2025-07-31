@@ -5,14 +5,13 @@ import Header from './header/index.vue'
 import { GetUserInfo } from '@renderer/service/api/user'
 import useUserStore from '@renderer/stores/modules/user'
 import { useLayoutStore } from './store'
-import { useImStore } from '@renderer/stores/modules/im'
 import GroupPanel from './group-panel/GroupPanel.vue'
-const imStore = useImStore()
+import { useGroupStore } from '@renderer/stores/modules/group'
 const { isLocked, unlockPassword, passwordError, handleUnlock } = useLayoutStore()
 
 const userStore = useUserStore()
-
-const showGroupPanel = computed(() => imStore.chatType === 'group')
+const groupStore = useGroupStore()
+const showGroupPanel = computed(() => groupStore.currentGroupId)
 
 // 获取用户信息
 const fetchUserInfo = async () => {

@@ -62,6 +62,9 @@ export const ipcApi = {
   expandGroupPanel: () => {
     ipcRenderer.send('expand-group-panel')
   },
+  collapseGroupPanel: () => {
+    ipcRenderer.send('collapse-group-panel')
+  },
   sendNotification: (
     title: string,
     body: string,
